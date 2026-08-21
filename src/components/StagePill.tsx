@@ -17,13 +17,13 @@ export function StagePill({ stage, className }: { stage: number; className?: str
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap",
+        "inline-flex items-baseline gap-1.5",
         PHASE_CLASS[def.phase],
         className
       )}
     >
-      <span className="size-1.5 shrink-0 rounded-full bg-current" />
-      <span className="font-heading text-xs tabular-nums opacity-70">
+      <span className="size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-current" />
+      <span className="shrink-0 font-heading text-xs tabular-nums opacity-70">
         {String(def.id).padStart(2, "0")}
       </span>
       <span className="text-[13px] font-medium text-foreground">{def.label}</span>

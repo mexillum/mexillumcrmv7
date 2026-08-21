@@ -1,20 +1,25 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
-import { Search } from "lucide-react";
+import { Search, Table2, Columns3 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
-import { leadOculto } from "../../convex/stages";
 import { PageHead } from "@/components/Shell";
 import { StagePill, SalidaBadge } from "@/components/StagePill";
+import { ProximaAccion } from "@/components/ProximaAccion";
+import { LeadCard } from "@/components/LeadCard";
+import { Tablero } from "@/components/Tablero";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fmtUSD, fmtFecha, hoyISO, VACIO } from "@/lib/formato";
+import { fmtUSD, hoyISO, VACIO } from "@/lib/formato";
+import { armarLeads, montoDe, type LeadVista } from "@/lib/leads";
+import { usePreferencia } from "@/lib/preferencias";
 import { cn } from "@/lib/utils";
 
 type Filtro = "abiertos" | "cerrados" | "todos";
+type Vista = "tabla" | "tablero";
+const VISTAS = ["tabla", "tablero"] as const;
 
 export function Leads() {
-  const navigate = useNavigate();
   const hoy = hoyISO();
 
   const iniciativas = useQuery(api.iniciativas.list);
@@ -23,46 +28,52 @@ export function Leads() {
 
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("abiertos");
+  // PRD §8: la elección Tabla / Tablero se recuerda.
+  const [vista, setVista] = usePreferencia<Vista>("leads.vista", "tabla", VISTAS);
 
   const nombreEmpresa = useMemo(() => {
-    const mapa = new Map((empresas ?? []).map((e) => [e._id, e.nombre]));
-    return (id: string) => mapa.get(id as never) ?? VACIO;
+    const mapa = new Map((empresas ?? []).map((e) => [e._id as string, e.nombre]));
+    return (id: string) => mapa.get(id) ?? VACIO;
   }, [empresas]);
 
   const cargando = iniciativas === undefined || empresas === undefined;
 
-  const { visibles, nAbiertos, nCerrados } = useMemo(() => {
-    const todas = iniciativas ?? [];
-    // PRD §6.3: "cerrado" incluye los DEFERRED que aún no toca retomar.
-    const abiertas = todas.filter((i) => !leadOculto(i.salida, hoy));
-    const cerradas = todas.filter((i) => leadOculto(i.salida, hoy));
+  const { visibles, nAbiertos, nCerrados, total } = useMemo(() => {
+    const todos = armarLeads(iniciativas ?? [], proximas, hoy);
+    const abiertos = todos.filter((l) => !l.oculto);
+    const cerrados = todos.filter((l) => l.oculto);
 
     const base =
-      filtro === "abiertos" ? abiertas : filtro === "cerrados" ? cerradas : todas;
+      filtro === "abiertos" ? abiertos : filtro === "cerrados" ? cerrados : todos;
 
     const texto = q.trim().toLowerCase();
-    const filtradas = texto
-      ? base.filter((i) =>
-          (nombreEmpresa(i.empresaId) + " " + i.nombre).toLowerCase().includes(texto)
+    const filtrados = texto
+      ? base.filter((l) =>
+          (nombreEmpresa(l.empresaId) + " " + l.nombre).toLowerCase().includes(texto)
         )
       : base;
 
     return {
-      visibles: filtradas,
-      nAbiertos: abiertas.length,
-      nCerrados: cerradas.length,
+      visibles: filtrados,
+      nAbiertos: abiertos.length,
+      nCerrados: cerrados.length,
+      total: todos.length,
     };
-  }, [iniciativas, filtro, q, hoy, nombreEmpresa]);
+  }, [iniciativas, proximas, filtro, q, hoy, nombreEmpresa]);
 
   const tabs: { id: Filtro; label: string; n: number }[] = [
     { id: "abiertos", label: "Abiertos", n: nAbiertos },
     { id: "cerrados", label: "Cerrados", n: nCerrados },
-    { id: "todos", label: "Todos", n: (iniciativas ?? []).length },
+    { id: "todos", label: "Todos", n: total },
   ];
 
   return (
     <>
-      <PageHead title="Leads" sub="Una empresa puede tener varios proyectos" />
+      <PageHead
+        title="Leads"
+        sub="Una empresa puede tener varios proyectos"
+        action={<CambioVista vista={vista} setVista={setVista} />}
+      />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-xl bg-muted p-1">
@@ -109,141 +120,121 @@ export function Leads() {
           ))}
         </div>
       ) : visibles.length === 0 ? (
-        <Vacio hayLeads={(iniciativas ?? []).length > 0} filtro={filtro} />
+        <Vacio hayLeads={total > 0} filtro={filtro} />
+      ) : vista === "tablero" ? (
+        <Tablero leads={visibles} nombreEmpresa={nombreEmpresa} hoy={hoy} />
       ) : (
-        <>
-          {/* Tabla — escritorio */}
-          <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-3 text-left font-semibold">Empresa</th>
-                  <th className="px-4 py-3 text-left font-semibold">Proyecto</th>
-                  <th className="px-4 py-3 text-left font-semibold">Etapa</th>
-                  <th className="px-4 py-3 text-left font-semibold">Próxima acción</th>
-                  <th className="px-4 py-3 text-right font-semibold">Monto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((i) => {
-                  const tarea = proximas?.[i._id];
-                  const cerrado = leadOculto(i.salida, hoy);
-                  const vencida = !!tarea && tarea.fecha < hoy;
-                  return (
-                    <tr
-                      key={i._id}
-                      onClick={() => navigate(`/leads/${i._id}`)}
-                      className={cn(
-                        "cursor-pointer border-t border-border transition-colors hover:bg-muted/40",
-                        cerrado && "opacity-70"
-                      )}
-                    >
-                      <td className="px-4 py-3 font-semibold text-foreground">
-                        {nombreEmpresa(i.empresaId)}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{i.nombre}</td>
-                      <td className="px-4 py-3">
-                        {i.salida ? (
-                          <SalidaBadge salida={i.salida} />
-                        ) : (
-                          <StagePill stage={i.stage} />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-[13px]">
-                        <ProximaAccion tarea={tarea} vencida={vencida} />
-                      </td>
-                      <td className="px-4 py-3 text-right font-heading tabular-nums text-foreground">
-                        {fmtUSD(montoDe(i.data))}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Tarjetas — teléfono (PRD §8.1) */}
-          <div className="space-y-2 md:hidden">
-            {visibles.map((i) => {
-              const tarea = proximas?.[i._id];
-              const vencida = !!tarea && tarea.fecha < hoy;
-              return (
-                <button
-                  key={i._id}
-                  type="button"
-                  onClick={() => navigate(`/leads/${i._id}`)}
-                  className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors active:bg-muted/40"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-foreground">
-                        {nombreEmpresa(i.empresaId)}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {i.nombre}
-                      </p>
-                    </div>
-                    <span className="shrink-0 font-heading text-sm tabular-nums text-foreground">
-                      {fmtUSD(montoDe(i.data))}
-                    </span>
-                  </div>
-
-                  <div className="mt-3">
-                    {i.salida ? (
-                      <SalidaBadge salida={i.salida} />
-                    ) : (
-                      <StagePill stage={i.stage} />
-                    )}
-                  </div>
-
-                  <div className="mt-2 text-[13px]">
-                    <ProximaAccion tarea={tarea} vencida={vencida} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
+        <Tabla leads={visibles} nombreEmpresa={nombreEmpresa} hoy={hoy} />
       )}
     </>
   );
 }
 
-/** PRD §4.3: la próxima acción es la tarea abierta más próxima. */
-function ProximaAccion({
-  tarea,
-  vencida,
+function CambioVista({
+  vista,
+  setVista,
 }: {
-  tarea?: { titulo: string; fecha: string };
-  vencida: boolean;
+  vista: Vista;
+  setVista: (v: Vista) => void;
 }) {
-  if (!tarea) {
-    return <span className="text-muted-foreground">{VACIO}</span>;
-  }
+  const opciones = [
+    { id: "tabla" as const, label: "Tabla", icon: Table2 },
+    { id: "tablero" as const, label: "Tablero", icon: Columns3 },
+  ];
+
   return (
-    <span className="inline-flex flex-wrap items-baseline gap-x-2">
-      <span className="text-muted-foreground">{tarea.titulo}</span>
-      <span
-        className={cn(
-          "font-heading text-xs tabular-nums",
-          vencida ? "font-semibold text-destructive" : "text-muted-foreground"
-        )}
-      >
-        {fmtFecha(tarea.fecha)}
-      </span>
-    </span>
+    <div className="flex gap-1 rounded-xl bg-muted p-1">
+      {opciones.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => setVista(id)}
+          aria-pressed={vista === id}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors",
+            vista === id
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Icon className="size-4" />
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }
 
-/** Monto que representa mejor al lead, del más firme al más tentativo. */
-function montoDe(data: {
-  montoFinal?: number;
-  montoNegociado?: number;
-  montoPropuesta?: number;
-  capex?: number;
-}): number | undefined {
+function Tabla({
+  leads,
+  nombreEmpresa,
+  hoy,
+}: {
+  leads: LeadVista[];
+  nombreEmpresa: (id: string) => string;
+  hoy: string;
+}) {
+  const navigate = useNavigate();
+
   return (
-    data.montoFinal ?? data.montoNegociado ?? data.montoPropuesta ?? data.capex
+    <>
+      {/* Escritorio */}
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-3 text-left font-semibold">Empresa</th>
+              <th className="px-4 py-3 text-left font-semibold">Proyecto</th>
+              <th className="px-4 py-3 text-left font-semibold">Etapa</th>
+              <th className="px-4 py-3 text-left font-semibold">Próxima acción</th>
+              <th className="px-4 py-3 text-right font-semibold">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leads.map((l) => (
+              <tr
+                key={l._id}
+                onClick={() => navigate(`/leads/${l._id}`)}
+                className={cn(
+                  "cursor-pointer border-t border-border transition-colors hover:bg-muted/40",
+                  l.oculto && "opacity-70"
+                )}
+              >
+                <td className="px-4 py-3 font-semibold text-foreground">
+                  {nombreEmpresa(l.empresaId)}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{l.nombre}</td>
+                <td className="px-4 py-3">
+                  {l.salida ? (
+                    <SalidaBadge salida={l.salida} />
+                  ) : (
+                    <StagePill stage={l.stage} />
+                  )}
+                </td>
+                <td className="px-4 py-3 text-[13px]">
+                  <ProximaAccion tarea={l.proxima} hoy={hoy} />
+                </td>
+                <td className="px-4 py-3 text-right font-heading tabular-nums text-foreground">
+                  {fmtUSD(montoDe(l.data))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Teléfono — PRD §8.1 */}
+      <div className="space-y-2 md:hidden">
+        {leads.map((l) => (
+          <LeadCard
+            key={l._id}
+            lead={l}
+            empresa={nombreEmpresa(l.empresaId)}
+            hoy={hoy}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
