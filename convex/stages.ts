@@ -140,3 +140,92 @@ export function esParaRetomar(salida: Salida | undefined, hoy: string): boolean 
     salida.fechaRetomar <= hoy
   );
 }
+
+// ── Catálogos (PRD §5) ───────────────────────────────────────
+
+export const SEGMENTOS = [
+  "Cemento y materiales de construcción",
+  "Acero y metales",
+  "Petróleo y gas",
+  "Energía y servicios públicos",
+  "Minería",
+  "Química y petroquímica",
+  "Alimentos y bebidas",
+  "Automotriz y autopartes",
+];
+
+export const TARIFAS = [
+  { value: "gdmth", label: "GDMTH — Gran Demanda Media Tensión Horaria" },
+  { value: "gdmto", label: "GDMTO — Gran Demanda Media Tensión Ordinaria" },
+  { value: "dist", label: "DIST o DIT — Subtransmisión / Transmisión" },
+  { value: "gdbt", label: "GDBT — Gran Demanda Baja Tensión" },
+  { value: "pdbt", label: "PDBT — Pequeña Demanda Baja Tensión (<25 kW)" },
+  { value: "privado", label: "Contrato privado" },
+];
+
+export const GENERADORES = ["Mexillum", "Intermepro"];
+export const TIPOS_SISTEMA = ["SFV", "BESS", "SFV + BESS"];
+export const TIPOS_INTERACCION = ["Nota", "Llamada", "Reunión", "Correo"];
+
+// ── Campos por etapa-con-datos (PRD §6.1) ────────────────────
+
+export type CampoTipo =
+  | "text"
+  | "textarea"
+  | "number"
+  | "usd"
+  | "date"
+  | "select"
+  | "computed";
+
+export type Campo = {
+  key: string;
+  label: string;
+  type: CampoTipo;
+  options?: { value: string; label: string }[];
+  required?: boolean;
+};
+
+const opts = (xs: string[]) => xs.map((x) => ({ value: x, label: x }));
+
+export const STAGE_FIELDS: Record<number, Campo[]> = {
+  2: [
+    { key: "segmento", label: "Segmento", type: "select", options: opts(SEGMENTOS) },
+    { key: "generador", label: "Generador", type: "select", options: opts(GENERADORES) },
+    { key: "tipoSistema", label: "Tipo de sistema", type: "select", options: opts(TIPOS_SISTEMA) },
+    { key: "hipotesisValor", label: "Hipótesis de valor", type: "textarea" },
+  ],
+  5: [
+    { key: "recibosCFE", label: "Recibos CFE recibidos", type: "select", options: opts(["Sí", "No", "Parcial"]) },
+    { key: "tarifa", label: "Tarifa CFE", type: "select", options: TARIFAS },
+    { key: "consumoMensual", label: "Consumo (kWh/mes)", type: "number" },
+    { key: "perfilCarga", label: "Perfil de carga", type: "textarea" },
+  ],
+  6: [
+    { key: "capex", label: "CAPEX estimado", type: "usd", required: true },
+    { key: "ahorroAnual", label: "Ahorro anual estimado", type: "usd", required: true },
+    { key: "__payback", label: "Payback (años)", type: "computed" },
+  ],
+  7: [
+    { key: "capacidad", label: "Capacidad / alcance del sistema", type: "text" },
+    { key: "montoPropuesta", label: "Monto de propuesta", type: "usd", required: true },
+    { key: "notasPropuesta", label: "Notas de propuesta", type: "textarea" },
+  ],
+  9: [
+    { key: "montoNegociado", label: "Monto negociado", type: "usd" },
+    { key: "objeciones", label: "Objeciones / notas", type: "textarea" },
+  ],
+  11: [
+    { key: "fechaFirma", label: "Fecha de firma", type: "date", required: true },
+    { key: "montoFinal", label: "Monto final", type: "usd", required: true },
+  ],
+};
+
+/** Qué hay que registrar para cumplir cada etapa-hito (PRD §6.1). */
+export const HITO_CRITERIO: Record<number, string> = {
+  1: "Registra la primera investigación o contacto para dejar de ser prospecto sin trabajar.",
+  3: "Registra el primer contacto con un interlocutor identificado.",
+  4: "Registra la interacción donde el cliente confirmó fecha y hora de reunión.",
+  8: "Registra el envío de la propuesta al cliente.",
+  10: "Registra el envío de la versión final del contrato para firma.",
+};

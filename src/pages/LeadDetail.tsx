@@ -1,0 +1,273 @@
+import { useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
+import { ArrowLeft, ArrowRight, Undo2, RotateCcw } from "lucide-react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import { stageDef, leadOculto } from "../../convex/stages";
+import { PageHead } from "@/components/Shell";
+import { Embudo } from "@/components/Embudo";
+import { PanelEtapa } from "@/components/PanelEtapa";
+import { RegistrarInteraccion } from "@/components/RegistrarInteraccion";
+import { Historial } from "@/components/Historial";
+import { TareasPanel } from "@/components/TareasPanel";
+import { SalidaBadge } from "@/components/StagePill";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fmtUSD, fmtMXN, fmtFechaLarga, hoyISO, VACIO } from "@/lib/formato";
+import { montoDe } from "@/lib/leads";
+import { mensajeDeError } from "@/lib/errores";
+
+export function LeadDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const hoy = hoyISO();
+  const iniciativaId = id as Id<"iniciativas">;
+
+  const lead = useQuery(api.iniciativas.get, { id: iniciativaId });
+  const tareas = useQuery(api.tareas.listByIniciativa, { iniciativaId });
+  const interacciones = useQuery(api.interacciones.listByIniciativa, {
+    iniciativaId,
+  });
+  const empresa = useQuery(
+    api.empresas.get,
+    lead ? { id: lead.empresaId } : "skip"
+  );
+  const contactos = useQuery(
+    api.contactos.listByEmpresa,
+    lead ? { empresaId: lead.empresaId } : "skip"
+  );
+  const settings = useQuery(api.settings.get);
+
+  const avanzar = useMutation(api.iniciativas.advanceStage);
+  const retroceder = useMutation(api.iniciativas.regressStage);
+  const reabrir = useMutation(api.iniciativas.reabrir);
+
+  const [ocupado, setOcupado] = useState(false);
+
+  const nombreContacto = useMemo(() => {
+    const mapa = new Map((contactos ?? []).map((c) => [c._id as string, c.nombre]));
+    return (id: string) => mapa.get(id);
+  }, [contactos]);
+
+  if (lead === undefined) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (lead === null) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center">
+        <p className="font-heading text-sm font-medium text-foreground">
+          Este lead ya no existe.
+        </p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/leads")}>
+          Volver a Leads
+        </Button>
+      </div>
+    );
+  }
+
+  const usdMxn = settings?.usdMxn ?? 18.5;
+  const def = stageDef(lead.stage);
+  const cerrado = !!lead.salida;
+  const oculto = leadOculto(lead.salida, hoy);
+  const monto = montoDe(lead.data);
+
+  async function accion(fn: () => Promise<unknown>, exito: string) {
+    setOcupado(true);
+    try {
+      await fn();
+      toast.success(exito);
+    } catch (error) {
+      console.error(error);
+      toast.error(mensajeDeError(error));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <>
+      <Link
+        to="/leads"
+        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Leads
+      </Link>
+
+      <PageHead
+        title={lead.nombre}
+        sub={empresa?.nombre ?? VACIO}
+        action={
+          !cerrado && (
+            <div className="flex gap-2">
+              {lead.stage > 1 && (
+                <Button
+                  variant="outline"
+                  disabled={ocupado}
+                  onClick={() => {
+                    if (
+                      !confirm(
+                        `¿Regresar a la etapa anterior? Los datos capturados no se borran.`
+                      )
+                    )
+                      return;
+                    void accion(
+                      () => retroceder({ id: lead._id }),
+                      "Etapa retrocedida."
+                    );
+                  }}
+                >
+                  <Undo2 className="size-4" />
+                  Atrás
+                </Button>
+              )}
+              {lead.stage < 11 && (
+                <Button
+                  disabled={ocupado}
+                  onClick={() =>
+                    void accion(() => avanzar({ id: lead._id }), "Etapa avanzada.")
+                  }
+                >
+                  Avanzar
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+            </div>
+          )
+        }
+      />
+
+      {/* ── Estado del embudo ─────────────────────────────── */}
+      <section className="mb-4 rounded-xl border border-border bg-card p-4 sm:p-5">
+        <Embudo stage={lead.stage} cerrado={cerrado} />
+
+        <dl className="mt-5 grid gap-4 border-t border-border pt-4 sm:grid-cols-3">
+          <Dato label="Monto">
+            <span className="font-heading tabular-nums">{fmtUSD(monto)}</span>
+            {monto != null && (
+              <span className="ml-2 font-heading text-xs tabular-nums text-muted-foreground">
+                ≈ {fmtMXN(monto, usdMxn)} MXN
+              </span>
+            )}
+          </Dato>
+          <Dato label="Cierre estimado">{fmtFechaLarga(lead.cierre)}</Dato>
+          <Dato label="Tipo de etapa">
+            {def?.kind === "hito" ? "Hito" : "Datos"}
+          </Dato>
+        </dl>
+
+        {cerrado && lead.salida && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted p-3">
+            <div className="min-w-0">
+              <SalidaBadge salida={lead.salida} />
+              {lead.salida.nota && (
+                <p className="mt-1.5 text-[13px] text-muted-foreground">
+                  {lead.salida.nota}
+                </p>
+              )}
+              {lead.salida.fechaRetomar && (
+                <p className="mt-1.5 text-[13px] text-muted-foreground">
+                  Retomar el{" "}
+                  <span className="font-heading tabular-nums">
+                    {fmtFechaLarga(lead.salida.fechaRetomar)}
+                  </span>
+                  {!oculto && " · ya toca"}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={ocupado}
+              onClick={() =>
+                void accion(() => reabrir({ id: lead._id }), "Lead reabierto.")
+              }
+            >
+              <RotateCcw className="size-4" />
+              Reabrir
+            </Button>
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-4">
+          <PanelEtapa lead={lead} usdMxn={usdMxn} />
+          {!cerrado && (
+            <RegistrarInteraccion lead={lead} contactos={contactos ?? []} />
+          )}
+          <Historial
+            interacciones={interacciones ?? []}
+            nombreContacto={nombreContacto}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <TareasPanel
+            tareas={tareas ?? []}
+            iniciativaId={lead._id}
+            hoy={hoy}
+          />
+          <ContactosEmpresa contactos={contactos ?? []} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Dato({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+function ContactosEmpresa({
+  contactos,
+}: {
+  contactos: { _id: string; nombre: string; puesto?: string; email?: string; tel?: string }[];
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+      <h2 className="font-heading text-sm font-semibold text-foreground">
+        Contactos de la empresa
+      </h2>
+
+      {contactos.length === 0 ? (
+        <p className="mt-4 text-[13px] text-muted-foreground">
+          Esta empresa todavía no tiene contactos.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {contactos.map((c) => (
+            <li key={c._id}>
+              <p className="text-[13px] font-semibold text-foreground">
+                {c.nombre}
+              </p>
+              {c.puesto && (
+                <p className="text-xs text-muted-foreground">{c.puesto}</p>
+              )}
+              <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                {c.email && <span className="truncate">{c.email}</span>}
+                {c.tel && <span className="font-heading tabular-nums">{c.tel}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
