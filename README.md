@@ -92,6 +92,7 @@ de mudarse en silencio.
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
 | `npm run build` | Compila TypeScript y empaqueta a `dist/` |
+| `npm run deploy` | Compila y despliega a Cloudflare |
 | `npm run lint` | oxlint |
 | `npx convex dev` | Backend en vivo + genera tipos |
 | `npx convex run cuenta:cambiarContrasena '{"email":"…","nueva":"…"}'` | Cambia tu contraseña |
@@ -102,8 +103,13 @@ de mudarse en silencio.
 
 Cloudflare Pages, conectado al repositorio de GitHub.
 
-- Build command: `npm run build`
+- Deploy command: `npm run deploy`
 - Output directory: `dist`
+
+`wrangler deploy` **no compila**. El script `deploy` de `package.json`
+encadena `npm run build && wrangler deploy`, que es lo que hace falta.
+Si el comando de despliegue es solo `npx wrangler deploy`, el
+despliegue falla porque `dist/` no existe.
 - Variable de entorno: `VITE_CONVEX_URL` (la da `npx convex deploy`)
 
 Cloudflare despliega el proyecto como **Worker** con assets estáticos,

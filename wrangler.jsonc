@@ -6,6 +6,11 @@
     "enabled": true
   },
   "assets": {
+    // Dónde están los estáticos ya compilados. `wrangler deploy` NO
+    // compila: hay que ejecutar `npm run build` antes (ver el script
+    // "deploy" de package.json).
+    "directory": "./dist",
+
     // La SPA de React Router necesita que cualquier ruta desconocida
     // devuelva index.html. Cloudflare lo hace de forma nativa con esto.
     //
