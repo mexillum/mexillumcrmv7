@@ -224,7 +224,7 @@ CRUD completo en empresas, contactos, leads, tareas e interacciones.
 - **[v2] Ruteo:** React Router con URLs reales (`/leads/:id`, `/empresas/:id`). El botón "atrás" del teléfono funciona.
 - **Estilos:** Tailwind CSS v4 mediante el plugin `@tailwindcss/vite`, más los componentes de shadcn/ui.
 - **Backend:** Convex — base de datos en tiempo real. Cada entidad tiene su archivo de queries y mutations, dentro de la carpeta `convex/`. Todas las operaciones filtran por el usuario autenticado.
-- **Autenticación:** Convex Auth nativo (correo + contraseña). **[v2] El registro público está deshabilitado**: no hay pantalla de alta. La cuenta única se crea una vez con un script. Cada registro lleva `userId`.
+- **Autenticación:** Convex Auth nativo (correo + contraseña). **[v2] El registro público está deshabilitado**: la alta solo se ofrece mientras la tabla `users` está vacía, de modo que solo puede existir la primera cuenta. Después la pantalla solo permite iniciar sesión. No depende de ninguna variable de entorno. Cada registro lleva `userId`.
 - **Sincronización:** en tiempo real entre dispositivos, nativa de Convex.
 - **[v2] Despliegue:** **Cloudflare Pages**, conectado a un repositorio de GitHub. Al ser una SPA con React Router, se incluye un archivo `public/_redirects` con `/* /index.html 200`.
 
@@ -288,7 +288,7 @@ CRUD completo en empresas, contactos, leads, tareas e interacciones.
 14. Los `DEFERRED` reaparecen en el Panel el día de su `fechaRetomar`.
 15. En teléfono: barra inferior de 5 iconos y tabla de leads en tarjetas.
 16. El borrado es permanente, con recuento real y confirmación por escritura del nombre.
-17. Convex Auth solo con contraseña; registro público deshabilitado; cuenta creada por script.
+17. Convex Auth solo con contraseña; el alta solo existe mientras no hay ninguna cuenta y luego se cierra sola.
 18. La base arranca vacía; los datos de demo viven en un script de seed.
 19. Despliegue en Cloudflare Pages desde GitHub.
 

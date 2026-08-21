@@ -41,14 +41,15 @@ Déjalo corriendo: sincroniza el backend mientras trabajas.
 
 ### 2. Tu cuenta de usuario
 
-El registro público está **cerrado** a propósito (PRD §10). Para crear
-tu única cuenta:
+El registro público está **cerrado** a propósito (PRD §10), pero la
+pantalla de acceso se ocupa sola: mientras la base no tenga ninguna
+cuenta, ofrece **Crear cuenta**. Entras una vez, y a partir de ahí solo
+ofrece **Entrar**.
 
-```bash
-npx convex env set ALLOW_SIGNUP true
-# regístrate una vez desde la app
-npx convex env remove ALLOW_SIGNUP
-```
+No hay que tocar ninguna variable de entorno.
+
+¿Perdiste el acceso? Borra la fila de `users` en el dashboard de Convex
+y la pantalla volverá a ofrecer crear la cuenta.
 
 ### 3. La app
 
