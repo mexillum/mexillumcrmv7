@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { ArrowLeft, Plus, Pencil } from "lucide-react";
+import { useQuery, useMutation } from "convex/react";
+import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { leadOculto } from "../../convex/stages";
@@ -10,6 +10,7 @@ import { StagePill, SalidaBadge } from "@/components/StagePill";
 import { EmpresaForm, ContactoForm, LeadForm } from "@/components/formularios";
 import { Historial } from "@/components/Historial";
 import { Button } from "@/components/ui/button";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fmtUSD, hoyISO } from "@/lib/formato";
 import { montoDe } from "@/lib/leads";
@@ -25,6 +26,13 @@ export function EmpresaDetail() {
   const iniciativas = useQuery(api.iniciativas.listByEmpresa, { empresaId });
   const contactos = useQuery(api.contactos.listByEmpresa, { empresaId });
   const interacciones = useQuery(api.interacciones.listByEmpresa, { empresaId });
+  const [borrando, setBorrando] = useState(false);
+  const previa = useQuery(
+    api.empresas.deletePreview,
+    borrando ? { id: empresaId } : "skip"
+  );
+  const borrarEmpresa = useMutation(api.empresas.remove);
+  const borrarContacto = useMutation(api.contactos.remove);
 
   const [editando, setEditando] = useState(false);
   const [nuevoContacto, setNuevoContacto] = useState(false);
@@ -74,10 +82,20 @@ export function EmpresaDetail() {
         title={empresa.nombre}
         sub={empresa.segmento ?? "Sin segmento"}
         action={
-          <Button variant="outline" onClick={() => setEditando(true)}>
-            <Pencil className="size-4" />
-            Editar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditando(true)}>
+              <Pencil className="size-4" />
+              Editar
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Borrar empresa"
+              onClick={() => setBorrando(true)}
+            >
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
         }
       />
 
@@ -179,14 +197,28 @@ export function EmpresaDetail() {
                       )}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditContacto(c._id)}
-                    title="Editar contacto"
-                    className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    <Pencil className="size-3.5" />
-                  </button>
+                  <div className="flex shrink-0 gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => setEditContacto(c._id)}
+                      title="Editar contacto"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Borrar contacto"
+                      onClick={() => {
+                        if (!confirm(`¿Borrar a ${c.nombre}? No se puede deshacer.`))
+                          return;
+                        void borrarContacto({ id: c._id });
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -213,6 +245,24 @@ export function EmpresaDetail() {
       )}
       {nuevoLead && (
         <LeadForm abierto onCerrar={() => setNuevoLead(false)} empresaId={empresaId} />
+      )}
+      {borrando && (
+        <ConfirmDelete
+          abierto
+          onCerrar={() => setBorrando(false)}
+          nombre={empresa.nombre}
+          cargando={previa === undefined}
+          arrastra={[
+            [previa?.iniciativas ?? 0, "proyecto", "proyectos"],
+            [previa?.contactos ?? 0, "contacto", "contactos"],
+            [previa?.tareas ?? 0, "acción", "acciones"],
+            [previa?.interacciones ?? 0, "interacción", "interacciones"],
+          ]}
+          onBorrar={async () => {
+            await borrarEmpresa({ id: empresaId });
+            navigate("/empresas");
+          }}
+        />
       )}
     </>
   );

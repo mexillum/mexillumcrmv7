@@ -175,6 +175,7 @@ export const deletePreview = query({
   args: { id: v.id("iniciativas") },
   handler: async (ctx, { id }) => {
     const userId = await requireUser(ctx);
+    if ((await ctx.db.get(id)) === null) return null;
     const ini = await getOwned(ctx, "iniciativas", id, userId);
     const tareas = await ctx.db
       .query("tareas")

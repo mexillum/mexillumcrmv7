@@ -1,4 +1,6 @@
-import { MessageSquare, Phone, Users, Mail } from "lucide-react";
+import { MessageSquare, Phone, Users, Mail, Trash2 } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { fmtFechaLarga } from "@/lib/formato";
 
@@ -14,9 +16,10 @@ export function Historial({
   interacciones,
   nombreContacto,
 }: {
-  interacciones: Doc<"interacciones">[];
+  interacciones: (Doc<"interacciones"> & { iniciativaNombre?: string })[];
   nombreContacto: (id: string) => string | undefined;
 }) {
+  const borrar = useMutation(api.interacciones.remove);
   const ordenadas = [...interacciones].sort((a, b) =>
     a.fecha === b.fecha ? b._creationTime - a._creationTime : b.fecha.localeCompare(a.fecha)
   );
@@ -37,7 +40,7 @@ export function Historial({
             const Icon = ICONO[n.tipo] ?? MessageSquare;
             const contacto = n.contactoId ? nombreContacto(n.contactoId) : undefined;
             return (
-              <li key={n._id} className="flex gap-3">
+              <li key={n._id} className="group flex gap-3">
                 <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
                   <Icon className="size-3.5" />
                 </span>
@@ -54,6 +57,23 @@ export function Historial({
                         · {contacto}
                       </span>
                     )}
+                    {n.iniciativaNombre && (
+                      <span className="text-xs text-muted-foreground">
+                        · {n.iniciativaNombre}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      title="Borrar interacción"
+                      onClick={() => {
+                        if (!confirm("¿Borrar esta interacción? No se puede deshacer."))
+                          return;
+                        void borrar({ id: n._id });
+                      }}
+                      className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </div>
                   {n.descripcion && (
                     <p className="mt-1 whitespace-pre-wrap text-[13px] text-muted-foreground">

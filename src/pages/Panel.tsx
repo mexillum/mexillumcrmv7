@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import {
@@ -8,6 +8,7 @@ import {
   CircleDashed,
   RotateCcw,
   Snowflake,
+  Settings,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
@@ -16,6 +17,7 @@ import { PageHead } from "@/components/Shell";
 import { FilaTarea } from "@/components/FilaTarea";
 import { StagePill } from "@/components/StagePill";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AjustesDialog } from "@/components/AjustesDialog";
 import { fmtUSD, fmtMXN, fmtFechaLarga, hoyISO, VACIO } from "@/lib/formato";
 import { montoDe } from "@/lib/leads";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,7 @@ function sumaDias(iso: string, dias: number): string {
 export function Panel() {
   const hoy = hoyISO();
   const en7dias = sumaDias(hoy, 7);
+  const [ajustes, setAjustes] = useState(false);
 
   const iniciativas = useQuery(api.iniciativas.list);
   const tareas = useQuery(api.tareas.list);
@@ -145,7 +148,7 @@ export function Panel() {
     return (
       <>
         <PageHead title="Panel" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
@@ -166,7 +169,7 @@ export function Panel() {
       <PageHead title="Panel" sub={subtitulo[0].toUpperCase() + subtitulo.slice(1)} />
 
       {/* ── KPIs ──────────────────────────────────────────── */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           label="Leads abiertos"
           valor={d.abiertos.length}
@@ -288,6 +291,15 @@ export function Panel() {
           <p className="font-heading text-xs tabular-nums text-muted-foreground">
             ≈ {fmtMXN(d.valorPipeline, usdMxn)} MXN
           </p>
+          <button
+            type="button"
+            onClick={() => setAjustes(true)}
+            className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            <Settings className="size-3" />
+            Tipo de cambio{" "}
+            <span className="font-heading tabular-nums">{usdMxn}</span>
+          </button>
         </div>
 
         <div className="mt-5 space-y-1.5 border-t border-border pt-4">
@@ -339,6 +351,8 @@ export function Panel() {
           </Tarjeta>
         </>
       )}
+
+      {ajustes && <AjustesDialog abierto onCerrar={() => setAjustes(false)} />}
     </>
   );
 }

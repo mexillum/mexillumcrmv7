@@ -2,7 +2,16 @@ import { useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Undo2, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Undo2,
+  RotateCcw,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  LogOut,
+} from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { stageDef, leadOculto } from "../../convex/stages";
@@ -14,6 +23,15 @@ import { Historial } from "@/components/Historial";
 import { TareasPanel } from "@/components/TareasPanel";
 import { SalidaBadge } from "@/components/StagePill";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LeadForm } from "@/components/formularios";
+import { SalidaDialog } from "@/components/SalidaDialog";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fmtUSD, fmtMXN, fmtFechaLarga, hoyISO, VACIO } from "@/lib/formato";
 import { montoDe } from "@/lib/leads";
@@ -43,8 +61,16 @@ export function LeadDetail() {
   const avanzar = useMutation(api.iniciativas.advanceStage);
   const retroceder = useMutation(api.iniciativas.regressStage);
   const reabrir = useMutation(api.iniciativas.reabrir);
+  const borrar = useMutation(api.iniciativas.remove);
+  const [borrando, setBorrando] = useState(false);
+  const previa = useQuery(
+    api.iniciativas.deletePreview,
+    borrando ? { id: iniciativaId } : "skip"
+  );
 
   const [ocupado, setOcupado] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [salida, setSalida] = useState(false);
 
   const nombreContacto = useMemo(() => {
     const mapa = new Map((contactos ?? []).map((c) => [c._id as string, c.nombre]));
@@ -107,8 +133,9 @@ export function LeadDetail() {
         title={lead.nombre}
         sub={empresa?.nombre ?? VACIO}
         action={
-          !cerrado && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            {!cerrado && (
+              <>
               {lead.stage > 1 && (
                 <Button
                   variant="outline"
@@ -130,19 +157,47 @@ export function LeadDetail() {
                   Atrás
                 </Button>
               )}
-              {lead.stage < 11 && (
-                <Button
-                  disabled={ocupado}
-                  onClick={() =>
-                    void accion(() => avanzar({ id: lead._id }), "Etapa avanzada.")
-                  }
-                >
-                  Avanzar
-                  <ArrowRight className="size-4" />
+                {lead.stage < 11 && (
+                  <Button
+                    disabled={ocupado}
+                    onClick={() =>
+                      void accion(() => avanzar({ id: lead._id }), "Etapa avanzada.")
+                    }
+                  >
+                    Avanzar
+                    <ArrowRight className="size-4" />
+                  </Button>
+                )}
+              </>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <Button variant="outline" size="icon" aria-label="Más acciones">
+                  <MoreHorizontal className="size-4" />
                 </Button>
-              )}
-            </div>
-          )
+              } />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditando(true)}>
+                  <Pencil className="size-4" />
+                  Editar lead
+                </DropdownMenuItem>
+                {!cerrado && lead.stage < 11 && (
+                  <DropdownMenuItem onClick={() => setSalida(true)}>
+                    <LogOut className="size-4" />
+                    Sacar del embudo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setBorrando(true)}
+                >
+                  <Trash2 className="size-4" />
+                  Borrar lead
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         }
       />
 
@@ -220,6 +275,29 @@ export function LeadDetail() {
           <ContactosEmpresa contactos={contactos ?? []} />
         </div>
       </div>
+
+      {editando && (
+        <LeadForm abierto onCerrar={() => setEditando(false)} lead={lead} />
+      )}
+      {salida && (
+        <SalidaDialog abierto onCerrar={() => setSalida(false)} lead={lead} />
+      )}
+      {borrando && (
+        <ConfirmDelete
+          abierto
+          onCerrar={() => setBorrando(false)}
+          nombre={lead.nombre}
+          cargando={previa === undefined}
+          arrastra={[
+            [previa?.tareas ?? 0, "acción", "acciones"],
+            [previa?.interacciones ?? 0, "interacción", "interacciones"],
+          ]}
+          onBorrar={async () => {
+            await borrar({ id: lead._id });
+            navigate("/leads");
+          }}
+        />
+      )}
     </>
   );
 }

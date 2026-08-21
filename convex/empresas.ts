@@ -51,6 +51,9 @@ export const deletePreview = query({
   args: { id: v.id("empresas") },
   handler: async (ctx, { id }) => {
     const userId = await requireUser(ctx);
+    // Devolvemos null en vez de lanzar: tras borrar, el diálogo sigue
+    // montado un instante y la query volvería a pedir el documento.
+    if ((await ctx.db.get(id)) === null) return null;
     const empresa = await getOwned(ctx, "empresas", id, userId);
 
     const contactos = await ctx.db

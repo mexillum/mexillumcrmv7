@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -8,10 +9,12 @@ import {
   Building2,
   Users,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AjustesDialog } from "@/components/AjustesDialog";
 
 /** PRD §8: cinco secciones. En teléfono son la barra inferior (§8.1). */
 const NAV = [
@@ -25,6 +28,7 @@ const NAV = [
 export function Shell() {
   const { signOut } = useAuthActions();
   const yo = useQuery(api.auth.yo);
+  const [ajustes, setAjustes] = useState(false);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -68,6 +72,15 @@ export function Shell() {
             variant="ghost"
             size="sm"
             className="w-full justify-start gap-2.5 text-muted-foreground"
+            onClick={() => setAjustes(true)}
+          >
+            <Settings className="size-4" />
+            Ajustes
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2.5 text-muted-foreground"
             onClick={() => void signOut()}
           >
             <LogOut className="size-4" />
@@ -102,6 +115,8 @@ export function Shell() {
           </NavLink>
         ))}
       </nav>
+
+      {ajustes && <AjustesDialog abierto onCerrar={() => setAjustes(false)} />}
     </div>
   );
 }
