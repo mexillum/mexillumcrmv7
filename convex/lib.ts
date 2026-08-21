@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { QueryCtx, MutationCtx } from "./_generated/server";
-import { Id, TableNames } from "./_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id, TableNames } from "./_generated/dataModel";
 
 /**
  * Devuelve el userId autenticado o lanza si no hay sesión.
@@ -20,7 +20,7 @@ export async function requireUser(ctx: QueryCtx | MutationCtx): Promise<Id<"user
  */
 export async function getOwned<T extends TableNames>(
   ctx: QueryCtx | MutationCtx,
-  table: T,
+  _table: T,
   id: Id<T>,
   userId: Id<"users">
 ) {

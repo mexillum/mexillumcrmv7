@@ -25,3 +25,6 @@ dist-ssr
 
 # Convex
 .env.local
+
+# Playwright MCP
+.playwright-mcp/

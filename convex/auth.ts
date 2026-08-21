@@ -1,28 +1,38 @@
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
+import { query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 
 /**
  * Login con correo + contraseña, sin terceros.
  *
- * PRD §10 — EL REGISTRO PÚBLICO ESTÁ DESHABILITADO. La app es de un
- * solo usuario y vive en una URL pública; si el alta estuviera abierta,
- * cualquiera podría crearse una cuenta. `createAccount` de abajo lanza
- * salvo que `ALLOW_SIGNUP` esté puesto en el entorno de Convex.
+ * PRD §10 — EL REGISTRO PÚBLICO ESTÁ CERRADO. La app es de un solo
+ * usuario y vive en una URL pública; con el alta abierta cualquiera
+ * podría crearse una cuenta.
  *
- * Para crear tu cuenta la primera vez:
- *   npx convex env set ALLOW_SIGNUP true
- *   (te registras una vez desde la app)
- *   npx convex env remove ALLOW_SIGNUP
+ * La única excepción es el arranque: mientras NO exista ningún usuario,
+ * se permite crear el primero (el tuyo). En cuanto existe, la puerta se
+ * cierra sola y no hay que acordarse de cerrarla. No hay variables de
+ * entorno que recordar.
+ *
+ * Si algún día pierdes el acceso: borra la fila de `users` desde el
+ * dashboard de Convex y la pantalla volverá a ofrecer crear la cuenta.
  */
+
+async function sePuedeRegistrar(ctx: MutationCtx): Promise<boolean> {
+  const alguno = await ctx.db.query("users").first();
+  return alguno === null;
+}
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Password],
   callbacks: {
     async createOrUpdateUser(ctx, args) {
-      // Usuario ya existente: login normal, siempre permitido.
+      // Usuario ya existente: inicio de sesión normal, siempre permitido.
       if (args.existingUserId) return args.existingUserId;
 
-      if (process.env.ALLOW_SIGNUP !== "true") {
-        throw new Error("El registro está deshabilitado.");
+      if (!(await sePuedeRegistrar(ctx))) {
+        throw new Error("El registro está cerrado.");
       }
 
       return await ctx.db.insert("users", {
@@ -30,5 +40,18 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         name: args.profile.name,
       });
     },
+  },
+});
+
+/**
+ * ¿La base todavía no tiene ninguna cuenta?
+ * La pantalla de acceso la usa para mostrar "crear cuenta" la primera
+ * vez y solo "entrar" siempre después.
+ */
+export const necesitaPrimeraCuenta = query({
+  args: {},
+  handler: async (ctx) => {
+    const alguno = await ctx.db.query("users").first();
+    return alguno === null;
   },
 });
