@@ -112,3 +112,30 @@ export const ultimaPorIniciativa = query({
     return ultima;
   },
 });
+
+/**
+ * Todas las interacciones de una empresa, de todos sus proyectos.
+ * El detalle de empresa enseña este historial consolidado (PRD §8).
+ */
+export const listByEmpresa = query({
+  args: { empresaId: v.id("empresas") },
+  handler: async (ctx, { empresaId }) => {
+    const userId = await requireUser(ctx);
+    await getOwned(ctx, "empresas", empresaId, userId);
+
+    const iniciativas = await ctx.db
+      .query("iniciativas")
+      .withIndex("by_empresa", (q) => q.eq("empresaId", empresaId))
+      .collect();
+
+    const todas = [];
+    for (const ini of iniciativas) {
+      const ints = await ctx.db
+        .query("interacciones")
+        .withIndex("by_iniciativa", (q) => q.eq("iniciativaId", ini._id))
+        .collect();
+      for (const n of ints) todas.push({ ...n, iniciativaNombre: ini.nombre });
+    }
+    return todas;
+  },
+});

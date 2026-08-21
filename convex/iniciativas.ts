@@ -64,14 +64,19 @@ export const get = query({
 
 // Crea un lead en etapa 1 con data vacía.
 export const create = mutation({
-  args: { empresaId: v.id("empresas"), nombre: v.string() },
-  handler: async (ctx, { empresaId, nombre }) => {
+  args: {
+    empresaId: v.id("empresas"),
+    nombre: v.string(),
+    cierre: v.optional(v.string()),
+  },
+  handler: async (ctx, { empresaId, nombre, cierre }) => {
     const userId = await requireUser(ctx);
     await getOwned(ctx, "empresas", empresaId, userId);
     return await ctx.db.insert("iniciativas", {
       userId,
       empresaId,
       nombre,
+      cierre,
       stage: 1,
       data: {},
     });
