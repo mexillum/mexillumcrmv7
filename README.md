@@ -46,7 +46,7 @@ Déjalo corriendo: sincroniza el backend mientras trabajas.
 la cuenta — parece un problema de contraseña y no lo es.
 
 ```bash
-npx @convex-dev/auth --web-server-url http://localhost:5173
+npx @convex-dev/auth --web-server-url http://localhost:5180
 ```
 
 Genera `JWT_PRIVATE_KEY` y `JWKS` en el despliegue. Hay que repetirlo
@@ -76,6 +76,15 @@ npx convex run cuenta:cambiarContrasena '{"email":"tu@correo.mx","nueva":"otra-c
 ```bash
 npm run dev
 ```
+
+Abre **http://localhost:5180/**.
+
+El puerto está fijo a propósito (`vite.config.ts`). En esta máquina
+conviven varios proyectos Mexillum y `localhost:5173` pertenece a otro.
+Con el puerto automático, este proyecto se mudaba solo y abrir la URL
+de siempre mostraba un CRM distinto, con un login que nunca iba a
+funcionar. Si el 5180 está ocupado, Vite ahora falla en voz alta en vez
+de mudarse en silencio.
 
 ## Comandos
 
