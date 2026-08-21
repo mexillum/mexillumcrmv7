@@ -1,6 +1,7 @@
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { Toaster } from "@/components/ui/sonner";
 import { Login } from "@/pages/Login";
+import { Bienvenida } from "@/pages/Bienvenida";
 import { Cargando } from "@/components/Cargando";
 
 export default function App() {
@@ -16,7 +17,7 @@ export default function App() {
 
       <Authenticated>
         {/* El shell de navegación llega en el paso 3. */}
-        <Cargando texto="Sesión iniciada. El shell llega en el siguiente paso." />
+        <Bienvenida />
       </Authenticated>
 
       <Toaster position="top-right" />
