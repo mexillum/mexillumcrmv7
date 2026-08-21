@@ -54,11 +54,16 @@ export const listByEmpresa = query({
   },
 });
 
+// Devuelve null si el lead no existe, en vez de lanzar: un enlace
+// viejo (un marcador, o un lead borrado desde otro dispositivo) debe
+// enseñar "ya no existe", no una página en blanco.
 export const get = query({
   args: { id: v.id("iniciativas") },
   handler: async (ctx, { id }) => {
     const userId = await requireUser(ctx);
-    return await getOwned(ctx, "iniciativas", id, userId);
+    const doc = await ctx.db.get(id);
+    if (doc === null || doc.userId !== userId) return null;
+    return doc;
   },
 });
 

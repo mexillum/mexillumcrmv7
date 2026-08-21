@@ -44,10 +44,17 @@ export function LeadDetail() {
   const iniciativaId = id as Id<"iniciativas">;
 
   const lead = useQuery(api.iniciativas.get, { id: iniciativaId });
-  const tareas = useQuery(api.tareas.listByIniciativa, { iniciativaId });
-  const interacciones = useQuery(api.interacciones.listByIniciativa, {
-    iniciativaId,
-  });
+  // No pedimos las hijas hasta saber que el lead existe: con un enlace
+  // viejo, esas queries fallaban y dejaban la página en blanco en vez
+  // de enseñar "este lead ya no existe".
+  const tareas = useQuery(
+    api.tareas.listByIniciativa,
+    lead ? { iniciativaId } : "skip"
+  );
+  const interacciones = useQuery(
+    api.interacciones.listByIniciativa,
+    lead ? { iniciativaId } : "skip"
+  );
   const empresa = useQuery(
     api.empresas.get,
     lead ? { id: lead.empresaId } : "skip"
@@ -65,7 +72,7 @@ export function LeadDetail() {
   const [borrando, setBorrando] = useState(false);
   const previa = useQuery(
     api.iniciativas.deletePreview,
-    borrando ? { id: iniciativaId } : "skip"
+    borrando && lead ? { id: iniciativaId } : "skip"
   );
 
   const [ocupado, setOcupado] = useState(false);

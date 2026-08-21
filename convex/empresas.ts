@@ -14,12 +14,15 @@ export const list = query({
   },
 });
 
-// Una empresa por id (validando propiedad).
+// Una empresa por id (validando propiedad). Null si no existe: un
+// enlace viejo debe enseñar "ya no existe", no una página en blanco.
 export const get = query({
   args: { id: v.id("empresas") },
   handler: async (ctx, { id }) => {
     const userId = await requireUser(ctx);
-    return await getOwned(ctx, "empresas", id, userId);
+    const doc = await ctx.db.get(id);
+    if (doc === null || doc.userId !== userId) return null;
+    return doc;
   },
 });
 

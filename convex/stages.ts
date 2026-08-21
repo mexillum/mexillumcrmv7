@@ -26,7 +26,7 @@ export const STAGES: StageDef[] = [
   { id: 3, label: "Contacto inicial enviado", phase: "Calificación", kind: "hito", required: [] },
   { id: 4, label: "Reunión agendada", phase: "Calificación", kind: "hito", required: [] },
   { id: 5, label: "Diagnóstico realizado", phase: "Solución", kind: "datos", required: [] },
-  { id: 6, label: "Análisis de viabilidad", phase: "Solución", kind: "datos", required: ["capex", "ahorroAnual"] },
+  { id: 6, label: "Análisis de viabilidad", phase: "Solución", kind: "datos", required: ["capex"] },
   { id: 7, label: "Propuesta en preparación", phase: "Solución", kind: "datos", required: ["montoPropuesta"] },
   { id: 8, label: "Propuesta enviada", phase: "Comercial", kind: "hito", required: [] },
   { id: 9, label: "Negociación", phase: "Comercial", kind: "datos", required: [] },
@@ -203,7 +203,7 @@ export const STAGE_FIELDS: Record<number, Campo[]> = {
   ],
   6: [
     { key: "capex", label: "CAPEX estimado", type: "usd", required: true },
-    { key: "ahorroAnual", label: "Ahorro anual estimado", type: "usd", required: true },
+    { key: "ahorroAnual", label: "Ahorro anual estimado", type: "usd" },
     { key: "__payback", label: "Payback (años)", type: "computed" },
   ],
   7: [

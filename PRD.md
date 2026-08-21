@@ -130,12 +130,14 @@ Campos que captura cada etapa-con-datos:
 |---|---|
 | 02 Cuenta analizada | Segmento, generador, tipo de sistema, hipótesis de valor |
 | 05 Diagnóstico | Recibos CFE recibidos, tarifa CFE, consumo (kWh/mes), perfil de carga |
-| 06 Análisis de viabilidad | CAPEX estimado**\***, ahorro anual estimado**\***, payback (derivado) |
+| 06 Análisis de viabilidad | CAPEX estimado**\***, ahorro anual estimado, payback (derivado) |
 | 07 Propuesta en preparación | Capacidad/alcance, monto de propuesta**\***, notas de propuesta |
 | 09 Negociación | Monto negociado, objeciones/notas |
 | 11 Contrato firmado | Fecha de firma**\***, monto final**\*** |
 
 **\*** Campo obligatorio: bloquea el avance de etapa si está vacío. El resto son sugeridos.
+
+> **[v2b, 2026-08-21]** El **ahorro anual estimado dejó de ser obligatorio**. Solo el CAPEX bloquea la salida de la etapa 06. Sin ahorro anual, el payback simplemente se muestra como `—`, coherente con la regla de no inventar datos (§4.2).
 
 > **[v2] La validación de obligatorios vive en la mutation de Convex**, no solo en el formulario. `advanceStage` rechaza el avance si falta un campo obligatorio de la etapa actual. El formulario también valida, para dar el mensaje antes del viaje al servidor, pero la regla real está en el servidor.
 
