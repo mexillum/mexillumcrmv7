@@ -39,6 +39,23 @@ npx convex dev
 Inicia sesión, crea el proyecto y genera `convex/_generated/`.
 Déjalo corriendo: sincroniza el backend mientras trabajas.
 
+### 1b. Claves de firma de sesión
+
+**Obligatorio.** Sin esto el login falla con
+`Missing environment variable JWT_PRIVATE_KEY`, después de haber creado
+la cuenta — parece un problema de contraseña y no lo es.
+
+```bash
+npx @convex-dev/auth --web-server-url http://localhost:5173
+```
+
+Genera `JWT_PRIVATE_KEY` y `JWKS` en el despliegue. Hay que repetirlo
+en producción, con la URL real:
+
+```bash
+npx @convex-dev/auth --prod --web-server-url https://tu-dominio
+```
+
 ### 2. Tu cuenta de usuario
 
 El registro público está **cerrado** a propósito (PRD §10), pero la
@@ -48,8 +65,11 @@ ofrece **Entrar**.
 
 No hay que tocar ninguna variable de entorno.
 
-¿Perdiste el acceso? Borra la fila de `users` en el dashboard de Convex
-y la pantalla volverá a ofrecer crear la cuenta.
+¿Perdiste el acceso? Cambia la contraseña sin borrar nada:
+
+```bash
+npx convex run cuenta:cambiarContrasena '{"email":"tu@correo.mx","nueva":"otra-contrasena"}'
+```
 
 ### 3. La app
 
@@ -65,6 +85,7 @@ npm run dev
 | `npm run build` | Compila TypeScript y empaqueta a `dist/` |
 | `npm run lint` | oxlint |
 | `npx convex dev` | Backend en vivo + genera tipos |
+| `npx convex run cuenta:cambiarContrasena '{"email":"…","nueva":"…"}'` | Cambia tu contraseña |
 | `npx convex run seed:cargarDemo` | Carga datos de ejemplo |
 | `npx convex run seed:borrarTodo` | Borra todos los datos de negocio |
 

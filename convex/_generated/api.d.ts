@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as contactos from "../contactos.js";
+import type * as cuenta from "../cuenta.js";
 import type * as empresas from "../empresas.js";
 import type * as http from "../http.js";
 import type * as iniciativas from "../iniciativas.js";
@@ -29,6 +30,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   contactos: typeof contactos;
+  cuenta: typeof cuenta;
   empresas: typeof empresas;
   http: typeof http;
   iniciativas: typeof iniciativas;

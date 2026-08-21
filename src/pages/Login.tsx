@@ -41,7 +41,11 @@ export function Login() {
         password,
         flow: registro ? "signUp" : "signIn",
       });
-    } catch {
+    } catch (error) {
+      // El mensaje al usuario es genérico a propósito, pero el error
+      // real va a la consola: sin esto, un fallo de configuración del
+      // servidor se ve igual que una contraseña mal escrita.
+      console.error(error);
       toast.error(
         registro
           ? "No se pudo crear la cuenta."
