@@ -105,12 +105,22 @@ Cloudflare Pages, conectado al repositorio de GitHub.
 
 - Deploy command: `npm run deploy`
 - Output directory: `dist`
+- No hace falta configurar `VITE_CONVEX_URL` en el panel
 
 `wrangler deploy` **no compila**. El script `deploy` de `package.json`
 encadena `npm run build && wrangler deploy`, que es lo que hace falta.
 Si el comando de despliegue es solo `npx wrangler deploy`, el
 despliegue falla porque `dist/` no existe.
-- Variable de entorno: `VITE_CONVEX_URL` (la da `npx convex deploy`)
+**Sobre `VITE_CONVEX_URL`:** Vite incrusta las variables `VITE_*` en
+tiempo de compilación. Las "Variables and Secrets" del panel de
+Cloudflare son de ejecución, así que el build no las ve y el bundle
+sale sin URL. Por eso la URL de producción vive en `.env.production`,
+versionado. No es un secreto: viaja dentro del bundle de todos modos.
+
+| Entorno | Archivo | Despliegue |
+|---|---|---|
+| `npm run dev` | `.env.local` | desarrollo |
+| `npm run build` | `.env.production` | producción |
 
 Cloudflare despliega el proyecto como **Worker** con assets estáticos,
 no como Pages clásico; la configuración vive en `wrangler.jsonc`.
