@@ -98,3 +98,45 @@ export const MOTIVOS_PERDIDA = [
   "Sin decisión",
   "Otro",
 ];
+
+/** Etiquetas legibles de cada salida. */
+export const SALIDA_LABEL: Record<string, string> = {
+  NO_QUALIFY: "No califica",
+  NOT_VIABLE: "No viable",
+  LOST: "Perdido",
+  DEFERRED: "Retomar después",
+};
+
+export type Salida = {
+  estado: string;
+  motivo?: string;
+  nota?: string;
+  fechaRetomar?: string;
+  exceptionAcknowledged?: boolean;
+};
+
+/**
+ * PRD §6.3 — ¿este lead se esconde de las listas y de los KPIs?
+ *
+ * - Cerrados (perdido / no califica / no viable): siempre ocultos.
+ * - `DEFERRED`: oculto hasta que llega su fecha de retomar. Ese día
+ *   vuelve a aparecer, para que "retomar después" no sea un sinónimo
+ *   elegante de "perdido".
+ */
+export function leadOculto(salida: Salida | undefined, hoy: string): boolean {
+  if (!salida) return false;
+  if (SALIDAS_CERRADAS.includes(salida.estado)) return true;
+  if (salida.estado === "DEFERRED") {
+    return !salida.fechaRetomar || salida.fechaRetomar > hoy;
+  }
+  return false;
+}
+
+/** Un `DEFERRED` cuya fecha ya llegó: el Panel lo muestra en "Para retomar". */
+export function esParaRetomar(salida: Salida | undefined, hoy: string): boolean {
+  return (
+    salida?.estado === "DEFERRED" &&
+    !!salida.fechaRetomar &&
+    salida.fechaRetomar <= hoy
+  );
+}
