@@ -26,7 +26,7 @@ export async function getOwned<T extends TableNames>(
 ) {
   const doc = await ctx.db.get(id);
   if (!doc) throw new Error("No encontrado");
-  // @ts-expect-error: todas nuestras tablas de negocio tienen userId
+  // Todas nuestras tablas de negocio llevan userId.
   if (doc.userId !== userId) throw new Error("No autorizado");
   return doc;
 }
