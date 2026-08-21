@@ -90,3 +90,25 @@ export const remove = mutation({
     await ctx.db.delete(id);
   },
 });
+
+/**
+ * Fecha de la última interacción de cada lead, en un solo viaje.
+ * El Panel la usa para detectar los leads que se están enfriando.
+ */
+export const ultimaPorIniciativa = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    const todas = await ctx.db
+      .query("interacciones")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const ultima: Record<string, string> = {};
+    for (const n of todas) {
+      const previa = ultima[n.iniciativaId];
+      if (!previa || n.fecha > previa) ultima[n.iniciativaId] = n.fecha;
+    }
+    return ultima;
+  },
+});

@@ -29,7 +29,22 @@ const CONTACTOS = [
   { empresa: "e4", nombre: "Mónica Vega", puesto: "Directora", email: "monica@alimentosvega.mx", tel: "33 4455 6677" },
 ];
 
-const INICIATIVAS = [
+type SalidaSeed = {
+  estado: string;
+  motivo?: string;
+  nota?: string;
+  fechaRetomar?: string;
+};
+
+const INICIATIVAS: {
+  key: string;
+  empresa: string;
+  nombre: string;
+  stage: number;
+  cierre?: string;
+  data: Record<string, string | number>;
+  salida?: SalidaSeed;
+}[] = [
   {
     key: "i1", empresa: "e1", nombre: "SFV techo nave 2", stage: 8, cierre: "2026-10-15",
     data: { segmento: "Cemento y materiales de construcción", generador: "Mexillum", tipoSistema: "SFV", capex: 420000, ahorroAnual: 95000, capacidad: "850 kWp", montoPropuesta: 465000 },
@@ -41,6 +56,18 @@ const INICIATIVAS = [
     data: { tipoSistema: "SFV + BESS", capex: 780000, ahorroAnual: 150000, capacidad: "1.2 MWp + 500 kWh", montoPropuesta: 830000, montoNegociado: 810000 },
   },
   { key: "i5", empresa: "e4", nombre: "SFV azotea CD", stage: 1, cierre: undefined, data: {} },
+  // Un lead perdido y uno aparcado, para poder ver las reglas de
+  // visibilidad del PRD §6.3 sin tener que inventarlos a mano.
+  {
+    key: "i6", empresa: "e2", nombre: "BESS planta 3", stage: 9, cierre: "2026-07-15",
+    data: { tipoSistema: "BESS", capex: 310000, ahorroAnual: 62000, montoPropuesta: 340000 },
+    salida: { estado: "LOST", motivo: "Precio", nota: "Se fueron con una oferta 12% más barata." },
+  },
+  {
+    key: "i7", empresa: "e3", nombre: "SFV oficinas corporativo", stage: 4, cierre: undefined,
+    data: {},
+    salida: { estado: "DEFERRED", fechaRetomar: "2026-08-18" },
+  },
 ];
 
 const TAREAS = [
@@ -94,7 +121,8 @@ export const cargarDemo = internalMutation({
     for (const i of INICIATIVAS) {
       iniIds[i.key] = await ctx.db.insert("iniciativas", {
         userId, empresaId: empresaIds[i.empresa],
-        nombre: i.nombre, stage: i.stage, cierre: i.cierre, data: i.data,
+        nombre: i.nombre, stage: i.stage, cierre: i.cierre,
+        data: i.data, salida: i.salida,
       });
     }
 

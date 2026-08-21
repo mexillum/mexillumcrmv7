@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Login } from "@/pages/Login";
 import { Leads } from "@/pages/Leads";
 import { LeadDetail } from "@/pages/LeadDetail";
+import { Panel } from "@/pages/Panel";
 import { EnObra } from "@/pages/EnObra";
 import { Cargando } from "@/components/Cargando";
 
@@ -22,7 +23,7 @@ export default function App() {
       <Authenticated>
         <Routes>
           <Route element={<Shell />}>
-            <Route path="/" element={<EnObra title="Panel" paso="paso 6" />} />
+            <Route path="/" element={<Panel />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/leads/:id" element={<LeadDetail />} />
             <Route
