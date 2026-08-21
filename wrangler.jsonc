@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mexillumcrmv7",
+  "compatibility_date": "2026-08-20",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    // La SPA de React Router necesita que cualquier ruta desconocida
+    // devuelva index.html. Cloudflare lo hace de forma nativa con esto.
+    //
+    // NO añadir un archivo public/_redirects con "/* /index.html 200":
+    // sobre Workers, Cloudflare lo lee como un bucle infinito y rechaza
+    // el despliegue con el error 100324.
+    "not_found_handling": "single-page-application"
+  }
+}

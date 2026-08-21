@@ -106,5 +106,13 @@ Cloudflare Pages, conectado al repositorio de GitHub.
 - Output directory: `dist`
 - Variable de entorno: `VITE_CONVEX_URL` (la da `npx convex deploy`)
 
-`public/_redirects` ya contiene el fallback de SPA que React Router
-necesita para que refrescar en `/leads/abc` no dé 404.
+Cloudflare despliega el proyecto como **Worker** con assets estáticos,
+no como Pages clásico; la configuración vive en `wrangler.jsonc`.
+
+El fallback de SPA que React Router necesita (para que refrescar en
+`/leads/abc` no dé 404) vive en `wrangler.jsonc`, como
+`assets.not_found_handling: "single-page-application"`.
+
+**No añadas un `public/_redirects` con `/* /index.html 200`.** Sobre
+Workers, Cloudflare lo interpreta como un bucle infinito y rechaza el
+despliegue con el error 100324.

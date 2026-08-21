@@ -226,7 +226,7 @@ CRUD completo en empresas, contactos, leads, tareas e interacciones.
 - **Backend:** Convex — base de datos en tiempo real. Cada entidad tiene su archivo de queries y mutations, dentro de la carpeta `convex/`. Todas las operaciones filtran por el usuario autenticado.
 - **Autenticación:** Convex Auth nativo (correo + contraseña). **[v2] El registro público está deshabilitado**: la alta solo se ofrece mientras la tabla `users` está vacía, de modo que solo puede existir la primera cuenta. Después la pantalla solo permite iniciar sesión. No depende de ninguna variable de entorno. Cada registro lleva `userId`.
 - **Sincronización:** en tiempo real entre dispositivos, nativa de Convex.
-- **[v2] Despliegue:** **Cloudflare Pages**, conectado a un repositorio de GitHub. Al ser una SPA con React Router, se incluye un archivo `public/_redirects` con `/* /index.html 200`.
+- **[v2] Despliegue:** **Cloudflare Pages**, conectado a un repositorio de GitHub. Al ser una SPA con React Router, el fallback a `index.html` se declara en `wrangler.jsonc` (`assets.not_found_handling: "single-page-application"`). Un `public/_redirects` equivalente **no** sirve: sobre Workers, Cloudflare lo rechaza como bucle infinito.
 
 ### 10.1 Tablas (Convex)
 

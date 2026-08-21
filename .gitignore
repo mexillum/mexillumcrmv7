@@ -28,3 +28,6 @@ dist-ssr
 
 # Playwright MCP
 .playwright-mcp/
+
+# Cloudflare Wrangler
+.wrangler/
