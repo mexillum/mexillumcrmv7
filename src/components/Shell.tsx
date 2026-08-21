@@ -91,7 +91,11 @@ export function Shell() {
 
       {/* ── Contenido ─────────────────────────────────────────── */}
       <main className="px-4 pb-24 pt-6 md:ml-56 md:px-8 md:pb-10">
-        <div className="mx-auto max-w-6xl">
+        {/* Tope generoso: en un portátil ancho, 1152px dejaba una franja
+            vacía enorme a la derecha y la app parecía una columna de móvil.
+            1600 llena la pantalla sin que las líneas de texto se alarguen
+            hasta ser incómodas de leer. */}
+        <div className="mx-auto max-w-[1600px]">
           <Outlet />
         </div>
       </main>
