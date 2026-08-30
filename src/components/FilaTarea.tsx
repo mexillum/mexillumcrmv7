@@ -13,13 +13,13 @@ export function FilaTarea({
   sub,
   leadId,
   hoy,
-  contacto,
+  contactos,
 }: {
   tarea: Doc<"tareas">;
   sub: string;
   leadId: string;
   hoy: string;
-  contacto?: string;
+  contactos?: string[];
 }) {
   const navigate = useNavigate();
   const alternar = useMutation(api.tareas.toggle);
@@ -46,10 +46,10 @@ export function FilaTarea({
           {tarea.titulo}
         </p>
         <p className="truncate text-xs text-muted-foreground">{sub}</p>
-        {contacto && (
+        {contactos && contactos.length > 0 && (
           <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
             <User className="size-3 shrink-0" />
-            {contacto}
+            {contactos.join(", ")}
           </p>
         )}
       </button>

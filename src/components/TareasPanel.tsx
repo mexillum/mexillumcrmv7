@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Plus, Trash2, X, User } from "lucide-react";
@@ -8,45 +8,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { fmtFecha } from "@/lib/formato";
+import { contactosDeTarea } from "@/lib/tareas";
 import { cn } from "@/lib/utils";
+
+/** El formulario de nueva/editar acción, controlado desde LeadDetail. */
+export type Borrador = {
+  editar: Id<"tareas"> | null; // null = acción nueva
+  titulo: string;
+  fecha: string;
+  contactos: Id<"contactos">[];
+};
 
 /**
  * Tareas del lead. PRD §4.3: toda tarea lleva fecha obligatoria, porque
  * la próxima acción y las vencidas se calculan a partir de ella.
  *
- * El estado del formulario (abierto + contacto elegido) vive en el padre
- * para que el panel de "Contactos de la empresa" pueda asignar un
- * contacto con un click.
+ * El borrador (formulario abierto) vive en el padre para que el panel de
+ * "Contactos de la empresa" pueda agregar o quitar contactos con un click.
  */
 export function TareasPanel({
   tareas,
   iniciativaId,
   hoy,
   contactos,
-  abierto,
-  setAbierto,
-  contactoSel,
-  setContactoSel,
+  borrador,
+  setBorrador,
+  onNueva,
+  onEditar,
 }: {
   tareas: Doc<"tareas">[];
   iniciativaId: Id<"iniciativas">;
   hoy: string;
   contactos: Doc<"contactos">[];
-  abierto: boolean;
-  setAbierto: (v: boolean) => void;
-  contactoSel: Id<"contactos"> | null;
-  setContactoSel: (v: Id<"contactos"> | null) => void;
+  borrador: Borrador | null;
+  setBorrador: (b: Borrador | null) => void;
+  onNueva: () => void;
+  onEditar: (t: Doc<"tareas">) => void;
 }) {
   const crear = useMutation(api.tareas.create);
+  const actualizar = useMutation(api.tareas.update);
   const alternar = useMutation(api.tareas.toggle);
   const borrar = useMutation(api.tareas.remove);
 
-  const [titulo, setTitulo] = useState("");
-  const [fecha, setFecha] = useState(hoy);
-
   const nombreContacto = useMemo(() => {
     const mapa = new Map(contactos.map((c) => [c._id as string, c.nombre]));
-    return (id?: string) => (id ? mapa.get(id) : undefined);
+    return (id: string) => mapa.get(id);
   }, [contactos]);
 
   const abiertas = tareas
@@ -56,22 +62,29 @@ export function TareasPanel({
     .filter((t) => t.done)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-  async function agregar(e: React.FormEvent) {
+  async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (!titulo.trim()) return;
+    if (!borrador || !borrador.titulo.trim()) return;
     try {
-      await crear({
-        iniciativaId,
-        titulo: titulo.trim(),
-        fecha,
-        contactoId: contactoSel ?? undefined,
-      });
-      setTitulo("");
-      setContactoSel(null);
-      setAbierto(false);
+      if (borrador.editar) {
+        await actualizar({
+          id: borrador.editar,
+          titulo: borrador.titulo.trim(),
+          fecha: borrador.fecha,
+          contactoIds: borrador.contactos,
+        });
+      } else {
+        await crear({
+          iniciativaId,
+          titulo: borrador.titulo.trim(),
+          fecha: borrador.fecha,
+          contactoIds: borrador.contactos,
+        });
+      }
+      setBorrador(null);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo crear la tarea.");
+      toast.error("No se pudo guardar la acción.");
     }
   }
 
@@ -85,48 +98,64 @@ export function TareasPanel({
           variant="ghost"
           size="sm"
           className="gap-1.5 text-muted-foreground"
-          onClick={() => setAbierto(!abierto)}
+          onClick={() => (borrador ? setBorrador(null) : onNueva())}
         >
           <Plus className="size-4" />
           Nueva
         </Button>
       </div>
 
-      {abierto && (
-        <form onSubmit={agregar} className="mt-3 space-y-2">
+      {borrador && (
+        <form onSubmit={guardar} className="mt-3 space-y-2">
           <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
             <Input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+              value={borrador.titulo}
+              onChange={(e) =>
+                setBorrador({ ...borrador, titulo: e.target.value })
+              }
               placeholder="Qué hay que hacer…"
               autoFocus
             />
             <Input
               type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              value={borrador.fecha}
+              onChange={(e) =>
+                setBorrador({ ...borrador, fecha: e.target.value })
+              }
               required
               className="font-heading tabular-nums"
             />
-            <Button type="submit">Agregar</Button>
+            <Button type="submit">{borrador.editar ? "Guardar" : "Agregar"}</Button>
           </div>
 
-          {contactoSel ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pl-2.5 pr-1.5 text-xs text-primary">
-              <User className="size-3" />
-              {nombreContacto(contactoSel) ?? "Contacto"}
-              <button
-                type="button"
-                onClick={() => setContactoSel(null)}
-                title="Quitar contacto"
-                className="rounded-full p-0.5 hover:bg-primary/20"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
+          {borrador.contactos.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {borrador.contactos.map((id) => (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pl-2.5 pr-1.5 text-xs text-primary"
+                >
+                  <User className="size-3" />
+                  {nombreContacto(id) ?? "Contacto"}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBorrador({
+                        ...borrador,
+                        contactos: borrador.contactos.filter((x) => x !== id),
+                      })
+                    }
+                    title="Quitar contacto"
+                    className="rounded-full p-0.5 hover:bg-primary/20"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Haz click en un contacto de la empresa para asignarlo.
+              Haz click en los contactos de la empresa para asignarlos.
             </p>
           )}
         </form>
@@ -144,7 +173,9 @@ export function TareasPanel({
             key={t._id}
             tarea={t}
             vencida={t.fecha < hoy}
-            contacto={nombreContacto(t.contactoId)}
+            editando={borrador?.editar === t._id}
+            contactos={contactosDeTarea(t).map(nombreContacto).filter(Boolean) as string[]}
+            onEditar={() => onEditar(t)}
             onToggle={() => void alternar({ id: t._id })}
             onBorrar={() => void borrar({ id: t._id })}
           />
@@ -160,7 +191,9 @@ export function TareasPanel({
             key={t._id}
             tarea={t}
             vencida={false}
-            contacto={nombreContacto(t.contactoId)}
+            editando={borrador?.editar === t._id}
+            contactos={contactosDeTarea(t).map(nombreContacto).filter(Boolean) as string[]}
+            onEditar={() => onEditar(t)}
             onToggle={() => void alternar({ id: t._id })}
             onBorrar={() => void borrar({ id: t._id })}
           />
@@ -173,20 +206,34 @@ export function TareasPanel({
 function Fila({
   tarea,
   vencida,
-  contacto,
+  editando,
+  contactos,
+  onEditar,
   onToggle,
   onBorrar,
 }: {
   tarea: Doc<"tareas">;
   vencida: boolean;
-  contacto?: string;
+  editando: boolean;
+  contactos: string[];
+  onEditar: () => void;
   onToggle: () => void;
   onBorrar: () => void;
 }) {
   return (
-    <div className="group flex items-center gap-2.5 rounded-lg px-1 py-1.5 hover:bg-muted/50">
+    <div
+      className={cn(
+        "group flex items-center gap-2.5 rounded-lg px-1 py-1.5 hover:bg-muted/50",
+        editando && "bg-primary/5 ring-1 ring-primary/30"
+      )}
+    >
       <Checkbox checked={tarea.done} onCheckedChange={onToggle} />
-      <div className="flex-1">
+      <button
+        type="button"
+        onClick={onEditar}
+        title="Editar acción"
+        className="flex-1 text-left"
+      >
         <span
           className={cn(
             "text-[13px]",
@@ -195,13 +242,13 @@ function Fila({
         >
           {tarea.titulo}
         </span>
-        {contacto && (
+        {contactos.length > 0 && (
           <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-            <User className="size-3" />
-            {contacto}
+            <User className="size-3 shrink-0" />
+            {contactos.join(", ")}
           </span>
         )}
-      </div>
+      </button>
       <span
         className={cn(
           "font-heading text-xs tabular-nums",

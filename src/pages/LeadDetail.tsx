@@ -20,7 +20,7 @@ import { Embudo } from "@/components/Embudo";
 import { PanelEtapa } from "@/components/PanelEtapa";
 import { RegistrarInteraccion } from "@/components/RegistrarInteraccion";
 import { Historial } from "@/components/Historial";
-import { TareasPanel } from "@/components/TareasPanel";
+import { TareasPanel, type Borrador } from "@/components/TareasPanel";
 import { SalidaBadge } from "@/components/StagePill";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fmtUSD, fmtMXN, fmtFechaLarga, hoyISO, VACIO } from "@/lib/formato";
 import { montoDe } from "@/lib/leads";
 import { mensajeDeError } from "@/lib/errores";
+import { contactosDeTarea } from "@/lib/tareas";
 import { cn } from "@/lib/utils";
 
 export function LeadDetail() {
@@ -80,14 +81,34 @@ export function LeadDetail() {
   const [editando, setEditando] = useState(false);
   const [salida, setSalida] = useState(false);
 
-  // Formulario de "Nueva acción": vive aquí para que el panel de
-  // contactos pueda abrirlo y asignar un contacto con un click.
-  const [accionAbierta, setAccionAbierta] = useState(false);
-  const [contactoSel, setContactoSel] = useState<Id<"contactos"> | null>(null);
+  // Borrador de acción (nueva o edición): vive aquí para que el panel de
+  // contactos pueda agregar o quitar contactos con un click.
+  const [borrador, setBorrador] = useState<Borrador | null>(null);
 
-  function asignarContacto(contactoId: Id<"contactos">) {
-    setContactoSel(contactoId);
-    setAccionAbierta(true);
+  function abrirNueva() {
+    setBorrador({ editar: null, titulo: "", fecha: hoy, contactos: [] });
+  }
+  function abrirEditar(t: Doc<"tareas">) {
+    setBorrador({
+      editar: t._id,
+      titulo: t.titulo,
+      fecha: t.fecha,
+      contactos: contactosDeTarea(t) as Id<"contactos">[],
+    });
+  }
+  function alternarContacto(contactoId: Id<"contactos">) {
+    setBorrador((b) => {
+      if (!b) {
+        return { editar: null, titulo: "", fecha: hoy, contactos: [contactoId] };
+      }
+      const tiene = b.contactos.includes(contactoId);
+      return {
+        ...b,
+        contactos: tiene
+          ? b.contactos.filter((x) => x !== contactoId)
+          : [...b.contactos, contactoId],
+      };
+    });
   }
 
   const nombreContacto = useMemo(() => {
@@ -290,15 +311,15 @@ export function LeadDetail() {
             iniciativaId={lead._id}
             hoy={hoy}
             contactos={contactos ?? []}
-            abierto={accionAbierta}
-            setAbierto={setAccionAbierta}
-            contactoSel={contactoSel}
-            setContactoSel={setContactoSel}
+            borrador={borrador}
+            setBorrador={setBorrador}
+            onNueva={abrirNueva}
+            onEditar={abrirEditar}
           />
           <ContactosEmpresa
             contactos={contactos ?? []}
-            contactoSel={contactoSel}
-            onAsignar={asignarContacto}
+            seleccionados={borrador?.contactos ?? []}
+            onToggle={alternarContacto}
           />
         </div>
       </div>
@@ -342,12 +363,12 @@ function Dato({ label, children }: { label: string; children: React.ReactNode })
 
 function ContactosEmpresa({
   contactos,
-  contactoSel,
-  onAsignar,
+  seleccionados,
+  onToggle,
 }: {
   contactos: Doc<"contactos">[];
-  contactoSel: Id<"contactos"> | null;
-  onAsignar: (id: Id<"contactos">) => void;
+  seleccionados: Id<"contactos">[];
+  onToggle: (id: Id<"contactos">) => void;
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -362,13 +383,13 @@ function ContactosEmpresa({
       ) : (
         <ul className="mt-4 space-y-1.5">
           {contactos.map((c) => {
-            const activo = c._id === contactoSel;
+            const activo = seleccionados.includes(c._id);
             return (
               <li key={c._id}>
                 <button
                   type="button"
-                  onClick={() => onAsignar(c._id)}
-                  title="Asignar a la nueva acción"
+                  onClick={() => onToggle(c._id)}
+                  title={activo ? "Quitar de la acción" : "Agregar a la acción"}
                   className={cn(
                     "w-full rounded-lg px-2 py-1.5 text-left transition-colors",
                     activo

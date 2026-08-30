@@ -85,8 +85,12 @@ export default defineSchema({
     titulo: v.string(),
     fecha: v.string(), // "YYYY-MM-DD" — obligatoria
     done: v.boolean(),
-    // Contacto de la empresa al que va dirigida la acción. Opcional:
+    // Contactos de la empresa a los que va dirigida la acción. Opcional:
     // muchas acciones no apuntan a nadie en concreto.
+    contactoIds: v.optional(v.array(v.id("contactos"))),
+    // Campo viejo (un solo contacto). Se conserva para no perder los
+    // datos ya guardados; al leer se fusiona con contactoIds. Las
+    // escrituras nuevas usan solo contactoIds.
     contactoId: v.optional(v.id("contactos")),
   })
     .index("by_user", ["userId"])

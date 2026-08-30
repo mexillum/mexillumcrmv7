@@ -31,12 +31,14 @@ export const create = mutation({
     iniciativaId: v.id("iniciativas"),
     titulo: v.string(),
     fecha: v.string(), // PRD §4.3: obligatoria
-    contactoId: v.optional(v.id("contactos")),
+    contactoIds: v.optional(v.array(v.id("contactos"))),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
     await getOwned(ctx, "iniciativas", args.iniciativaId, userId);
-    if (args.contactoId) await getOwned(ctx, "contactos", args.contactoId, userId);
+    for (const c of args.contactoIds ?? []) {
+      await getOwned(ctx, "contactos", c, userId);
+    }
     return await ctx.db.insert("tareas", { userId, done: false, ...args });
   },
 });
@@ -56,11 +58,23 @@ export const update = mutation({
     titulo: v.optional(v.string()),
     fecha: v.optional(v.string()), // opcional aquí = "no cambiar"
     done: v.optional(v.boolean()),
+    // Lista completa de contactos. Un arreglo vacío deja la acción sin
+    // contactos; undefined = "no cambiar".
+    contactoIds: v.optional(v.array(v.id("contactos"))),
   },
   handler: async (ctx, { id, ...patch }) => {
     const userId = await requireUser(ctx);
     await getOwned(ctx, "tareas", id, userId);
-    await ctx.db.patch(id, patch);
+    for (const c of patch.contactoIds ?? []) {
+      await getOwned(ctx, "contactos", c, userId);
+    }
+    // Al fijar la lista nueva, borramos el campo viejo de un solo
+    // contacto para que no reaparezca al fusionar en la lectura.
+    const patchFinal =
+      patch.contactoIds !== undefined
+        ? { ...patch, contactoId: undefined }
+        : patch;
+    await ctx.db.patch(id, patchFinal);
   },
 });
 

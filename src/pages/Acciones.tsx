@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { hoyISO, fmtFecha, fmtFechaLarga, VACIO } from "@/lib/formato";
+import { contactosDeTarea } from "@/lib/tareas";
 
 /** PRD §8: todos los pendientes en vencidas / próximas / completadas. */
 export function Acciones() {
@@ -31,9 +32,12 @@ export function Acciones() {
     return (id: string) => mapa.get(id) ?? VACIO;
   }, [empresas]);
 
-  const nombreContacto = useMemo(() => {
+  const nombresContacto = useMemo(() => {
     const mapa = new Map((contactos ?? []).map((c) => [c._id as string, c.nombre]));
-    return (id?: string) => (id ? mapa.get(id) : undefined);
+    return (t: Doc<"tareas">) =>
+      contactosDeTarea(t)
+        .map((id) => mapa.get(id))
+        .filter(Boolean) as string[];
   }, [contactos]);
 
   const grupos = useMemo(() => {
@@ -121,7 +125,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
-              contacto={nombreContacto(t.contactoId)}
+              contactos={nombresContacto(t)}
             />
           ))}
         </Grupo>
@@ -139,7 +143,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
-              contacto={nombreContacto(t.contactoId)}
+              contactos={nombresContacto(t)}
             />
           ))}
         </Grupo>
@@ -157,7 +161,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
-              contacto={nombreContacto(t.contactoId)}
+              contactos={nombresContacto(t)}
             />
           ))}
         </Grupo>
@@ -167,7 +171,7 @@ export function Acciones() {
         vencidas={grupos.vencidas}
         proximas={grupos.proximas}
         sub={grupos.sub}
-        contacto={nombreContacto}
+        contactos={nombresContacto}
         hoy={hoy}
       />
     </>
@@ -180,13 +184,13 @@ function HojaImprimible({
   vencidas,
   proximas,
   sub,
-  contacto,
+  contactos,
   hoy,
 }: {
   vencidas: Doc<"tareas">[];
   proximas: Doc<"tareas">[];
   sub: (t: Doc<"tareas">) => string;
-  contacto: (id?: string) => string | undefined;
+  contactos: (t: Doc<"tareas">) => string[];
   hoy: string;
 }) {
   return (
@@ -200,8 +204,8 @@ function HojaImprimible({
         </p>
       </div>
 
-      <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} contacto={contacto} />
-      <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} contacto={contacto} />
+      <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} contactos={contactos} />
+      <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} contactos={contactos} />
     </div>
   );
 }
@@ -210,12 +214,12 @@ function SeccionImprimible({
   titulo,
   tareas,
   sub,
-  contacto,
+  contactos,
 }: {
   titulo: string;
   tareas: Doc<"tareas">[];
   sub: (t: Doc<"tareas">) => string;
-  contacto: (id?: string) => string | undefined;
+  contactos: (t: Doc<"tareas">) => string[];
 }) {
   return (
     <div style={{ marginBottom: "6mm" }}>
@@ -242,7 +246,9 @@ function SeccionImprimible({
             <div style={{ fontSize: "11pt", fontWeight: 600 }}>{t.titulo}</div>
             <div style={{ fontSize: "9.5pt", color: "#333" }}>
               {sub(t)} · {fmtFecha(t.fecha)}
-              {contacto(t.contactoId) ? ` · Contacto: ${contacto(t.contactoId)}` : ""}
+              {contactos(t).length > 0
+                ? ` · Contacto: ${contactos(t).join(", ")}`
+                : ""}
             </div>
             <div
               style={{
