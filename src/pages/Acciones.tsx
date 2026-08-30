@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
-import { AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, Printer } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { leadOculto } from "../../convex/stages";
@@ -8,7 +8,8 @@ import { PageHead } from "@/components/Shell";
 import { FilaTarea } from "@/components/FilaTarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { hoyISO, VACIO } from "@/lib/formato";
+import { Button } from "@/components/ui/button";
+import { hoyISO, fmtFecha, fmtFechaLarga, VACIO } from "@/lib/formato";
 
 /** PRD §8: todos los pendientes en vencidas / próximas / completadas. */
 export function Acciones() {
@@ -76,13 +77,24 @@ export function Acciones() {
         title="Acciones"
         sub="Toda tarea lleva fecha; por eso puede estar vencida"
         action={
-          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground">
-            <Checkbox
-              checked={incluirCerrados}
-              onCheckedChange={(v) => setIncluirCerrados(v === true)}
-            />
-            Incluir leads cerrados
-          </label>
+          <div className="flex items-center gap-4">
+            <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground">
+              <Checkbox
+                checked={incluirCerrados}
+                onCheckedChange={(v) => setIncluirCerrados(v === true)}
+              />
+              Incluir leads cerrados
+            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              disabled={grupos.vencidas.length === 0 && grupos.proximas.length === 0}
+            >
+              <Printer className="size-4" />
+              Imprimir / PDF
+            </Button>
+          </div>
         }
       />
 
@@ -138,7 +150,96 @@ export function Acciones() {
           ))}
         </Grupo>
       </div>
+
+      <HojaImprimible
+        vencidas={grupos.vencidas}
+        proximas={grupos.proximas}
+        sub={grupos.sub}
+        hoy={hoy}
+      />
     </>
+  );
+}
+
+/** Vista solo-impresión: vencidas arriba, pendientes después, con una
+ *  línea en blanco bajo cada acción para anotar la próxima. */
+function HojaImprimible({
+  vencidas,
+  proximas,
+  sub,
+  hoy,
+}: {
+  vencidas: Doc<"tareas">[];
+  proximas: Doc<"tareas">[];
+  sub: (t: Doc<"tareas">) => string;
+  hoy: string;
+}) {
+  return (
+    <div id="imprimir-acciones">
+      <div style={{ marginBottom: "6mm" }}>
+        <h1 style={{ fontSize: "16pt", fontWeight: 700, margin: 0 }}>
+          Acciones pendientes
+        </h1>
+        <p style={{ fontSize: "10pt", margin: "1mm 0 0" }}>
+          Impreso el {fmtFechaLarga(hoy)}
+        </p>
+      </div>
+
+      <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} />
+      <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} />
+    </div>
+  );
+}
+
+function SeccionImprimible({
+  titulo,
+  tareas,
+  sub,
+}: {
+  titulo: string;
+  tareas: Doc<"tareas">[];
+  sub: (t: Doc<"tareas">) => string;
+}) {
+  return (
+    <div style={{ marginBottom: "6mm" }}>
+      <h2
+        style={{
+          fontSize: "12pt",
+          fontWeight: 700,
+          borderBottom: "1px solid #000",
+          paddingBottom: "1mm",
+          marginBottom: "3mm",
+        }}
+      >
+        {titulo} ({tareas.length})
+      </h2>
+      {tareas.length === 0 ? (
+        <p style={{ fontSize: "10pt", fontStyle: "italic" }}>Nada aquí.</p>
+      ) : (
+        tareas.map((t) => (
+          <div
+            key={t._id}
+            className="imprimir-fila"
+            style={{ marginBottom: "4mm" }}
+          >
+            <div style={{ fontSize: "11pt", fontWeight: 600 }}>{t.titulo}</div>
+            <div style={{ fontSize: "9.5pt", color: "#333" }}>
+              {sub(t)} · {fmtFecha(t.fecha)}
+            </div>
+            <div
+              style={{
+                fontSize: "9pt",
+                color: "#555",
+                borderBottom: "1px solid #999",
+                paddingTop: "3mm",
+              }}
+            >
+              Próxima acción:
+            </div>
+          </div>
+        ))
+      )}
+    </div>
   );
 }
 

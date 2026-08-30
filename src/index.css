@@ -127,3 +127,36 @@
     @apply font-sans;
     }
 }
+
+/* ── Impresión de Acciones (botón "Imprimir / PDF") ──────────────
+   La hoja imprimible vive oculta en pantalla y solo aparece al
+   imprimir. Truco: ocultamos todo el body y volvemos a mostrar solo
+   el bloque #imprimir-acciones, colocado desde la esquina superior. */
+#imprimir-acciones {
+  display: none;
+}
+
+@media print {
+  body {
+    visibility: hidden;
+  }
+  #imprimir-acciones {
+    display: block;
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 4mm;
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+  }
+  #imprimir-acciones * {
+    visibility: visible;
+  }
+  /* Que una acción no se parta entre dos hojas. */
+  .imprimir-fila {
+    break-inside: avoid;
+  }
+}
