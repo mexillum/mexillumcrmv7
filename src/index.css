@@ -92,11 +92,12 @@
     --warn-soft: #FFF9E6;
 
     /* Fases del embudo (PRD §6, tablero de 5 columnas) */
-    --phase-prospeccion: #8A93A8;
-    --phase-calificacion: #2563EB;
-    --phase-solucion: #6366F1;
-    --phase-comercial: #0025AE;
-    --phase-cierre: #16A34A;
+    /* Un color fuerte y distinto por fase (bien notorios entre sí). */
+    --phase-prospeccion: #D97706; /* ámbar */
+    --phase-calificacion: #DB2777; /* rosa */
+    --phase-solucion: #7C3AED; /* violeta */
+    --phase-comercial: #2563EB; /* azul */
+    --phase-cierre: #059669; /* verde */
 
     /* Gráficas — misma familia azul */
     --chart-1: #2563EB;
