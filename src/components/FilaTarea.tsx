@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "convex/react";
+import { User } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,11 +13,13 @@ export function FilaTarea({
   sub,
   leadId,
   hoy,
+  contacto,
 }: {
   tarea: Doc<"tareas">;
   sub: string;
   leadId: string;
   hoy: string;
+  contacto?: string;
 }) {
   const navigate = useNavigate();
   const alternar = useMutation(api.tareas.toggle);
@@ -43,6 +46,12 @@ export function FilaTarea({
           {tarea.titulo}
         </p>
         <p className="truncate text-xs text-muted-foreground">{sub}</p>
+        {contacto && (
+          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+            <User className="size-3 shrink-0" />
+            {contacto}
+          </p>
+        )}
       </button>
       <span
         className={cn(

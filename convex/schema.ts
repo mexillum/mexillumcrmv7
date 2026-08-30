@@ -85,6 +85,9 @@ export default defineSchema({
     titulo: v.string(),
     fecha: v.string(), // "YYYY-MM-DD" — obligatoria
     done: v.boolean(),
+    // Contacto de la empresa al que va dirigida la acción. Opcional:
+    // muchas acciones no apuntan a nadie en concreto.
+    contactoId: v.optional(v.id("contactos")),
   })
     .index("by_user", ["userId"])
     .index("by_iniciativa", ["iniciativaId"])

@@ -31,10 +31,12 @@ export const create = mutation({
     iniciativaId: v.id("iniciativas"),
     titulo: v.string(),
     fecha: v.string(), // PRD §4.3: obligatoria
+    contactoId: v.optional(v.id("contactos")),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
     await getOwned(ctx, "iniciativas", args.iniciativaId, userId);
+    if (args.contactoId) await getOwned(ctx, "contactos", args.contactoId, userId);
     return await ctx.db.insert("tareas", { userId, done: false, ...args });
   },
 });

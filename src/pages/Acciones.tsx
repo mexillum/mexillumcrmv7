@@ -17,15 +17,24 @@ export function Acciones() {
   const tareas = useQuery(api.tareas.list);
   const iniciativas = useQuery(api.iniciativas.list);
   const empresas = useQuery(api.empresas.list);
+  const contactos = useQuery(api.contactos.list);
   const [incluirCerrados, setIncluirCerrados] = useState(false);
 
   const cargando =
-    tareas === undefined || iniciativas === undefined || empresas === undefined;
+    tareas === undefined ||
+    iniciativas === undefined ||
+    empresas === undefined ||
+    contactos === undefined;
 
   const nombreEmpresa = useMemo(() => {
     const mapa = new Map((empresas ?? []).map((e) => [e._id as string, e.nombre]));
     return (id: string) => mapa.get(id) ?? VACIO;
   }, [empresas]);
+
+  const nombreContacto = useMemo(() => {
+    const mapa = new Map((contactos ?? []).map((c) => [c._id as string, c.nombre]));
+    return (id?: string) => (id ? mapa.get(id) : undefined);
+  }, [contactos]);
 
   const grupos = useMemo(() => {
     const porId = new Map(
@@ -112,6 +121,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
+              contacto={nombreContacto(t.contactoId)}
             />
           ))}
         </Grupo>
@@ -129,6 +139,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
+              contacto={nombreContacto(t.contactoId)}
             />
           ))}
         </Grupo>
@@ -146,6 +157,7 @@ export function Acciones() {
               leadId={t.iniciativaId}
               hoy={hoy}
               sub={grupos.sub(t)}
+              contacto={nombreContacto(t.contactoId)}
             />
           ))}
         </Grupo>
@@ -155,6 +167,7 @@ export function Acciones() {
         vencidas={grupos.vencidas}
         proximas={grupos.proximas}
         sub={grupos.sub}
+        contacto={nombreContacto}
         hoy={hoy}
       />
     </>
@@ -167,11 +180,13 @@ function HojaImprimible({
   vencidas,
   proximas,
   sub,
+  contacto,
   hoy,
 }: {
   vencidas: Doc<"tareas">[];
   proximas: Doc<"tareas">[];
   sub: (t: Doc<"tareas">) => string;
+  contacto: (id?: string) => string | undefined;
   hoy: string;
 }) {
   return (
@@ -185,8 +200,8 @@ function HojaImprimible({
         </p>
       </div>
 
-      <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} />
-      <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} />
+      <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} contacto={contacto} />
+      <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} contacto={contacto} />
     </div>
   );
 }
@@ -195,10 +210,12 @@ function SeccionImprimible({
   titulo,
   tareas,
   sub,
+  contacto,
 }: {
   titulo: string;
   tareas: Doc<"tareas">[];
   sub: (t: Doc<"tareas">) => string;
+  contacto: (id?: string) => string | undefined;
 }) {
   return (
     <div style={{ marginBottom: "6mm" }}>
@@ -225,6 +242,7 @@ function SeccionImprimible({
             <div style={{ fontSize: "11pt", fontWeight: 600 }}>{t.titulo}</div>
             <div style={{ fontSize: "9.5pt", color: "#333" }}>
               {sub(t)} · {fmtFecha(t.fecha)}
+              {contacto(t.contactoId) ? ` · Contacto: ${contacto(t.contactoId)}` : ""}
             </div>
             <div
               style={{

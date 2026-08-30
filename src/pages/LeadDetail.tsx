@@ -13,7 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { stageDef, leadOculto } from "../../convex/stages";
 import { PageHead } from "@/components/Shell";
 import { Embudo } from "@/components/Embudo";
@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fmtUSD, fmtMXN, fmtFechaLarga, hoyISO, VACIO } from "@/lib/formato";
 import { montoDe } from "@/lib/leads";
 import { mensajeDeError } from "@/lib/errores";
+import { cn } from "@/lib/utils";
 
 export function LeadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +79,16 @@ export function LeadDetail() {
   const [ocupado, setOcupado] = useState(false);
   const [editando, setEditando] = useState(false);
   const [salida, setSalida] = useState(false);
+
+  // Formulario de "Nueva acción": vive aquí para que el panel de
+  // contactos pueda abrirlo y asignar un contacto con un click.
+  const [accionAbierta, setAccionAbierta] = useState(false);
+  const [contactoSel, setContactoSel] = useState<Id<"contactos"> | null>(null);
+
+  function asignarContacto(contactoId: Id<"contactos">) {
+    setContactoSel(contactoId);
+    setAccionAbierta(true);
+  }
 
   const nombreContacto = useMemo(() => {
     const mapa = new Map((contactos ?? []).map((c) => [c._id as string, c.nombre]));
@@ -278,8 +289,17 @@ export function LeadDetail() {
             tareas={tareas ?? []}
             iniciativaId={lead._id}
             hoy={hoy}
+            contactos={contactos ?? []}
+            abierto={accionAbierta}
+            setAbierto={setAccionAbierta}
+            contactoSel={contactoSel}
+            setContactoSel={setContactoSel}
           />
-          <ContactosEmpresa contactos={contactos ?? []} />
+          <ContactosEmpresa
+            contactos={contactos ?? []}
+            contactoSel={contactoSel}
+            onAsignar={asignarContacto}
+          />
         </div>
       </div>
 
@@ -322,8 +342,12 @@ function Dato({ label, children }: { label: string; children: React.ReactNode })
 
 function ContactosEmpresa({
   contactos,
+  contactoSel,
+  onAsignar,
 }: {
-  contactos: { _id: string; nombre: string; puesto?: string; email?: string; tel?: string }[];
+  contactos: Doc<"contactos">[];
+  contactoSel: Id<"contactos"> | null;
+  onAsignar: (id: Id<"contactos">) => void;
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -336,21 +360,36 @@ function ContactosEmpresa({
           Esta empresa todavía no tiene contactos.
         </p>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {contactos.map((c) => (
-            <li key={c._id}>
-              <p className="text-[13px] font-semibold text-foreground">
-                {c.nombre}
-              </p>
-              {c.puesto && (
-                <p className="text-xs text-muted-foreground">{c.puesto}</p>
-              )}
-              <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                {c.email && <span className="truncate">{c.email}</span>}
-                {c.tel && <span className="font-heading tabular-nums">{c.tel}</span>}
-              </div>
-            </li>
-          ))}
+        <ul className="mt-4 space-y-1.5">
+          {contactos.map((c) => {
+            const activo = c._id === contactoSel;
+            return (
+              <li key={c._id}>
+                <button
+                  type="button"
+                  onClick={() => onAsignar(c._id)}
+                  title="Asignar a la nueva acción"
+                  className={cn(
+                    "w-full rounded-lg px-2 py-1.5 text-left transition-colors",
+                    activo
+                      ? "bg-primary/10 ring-1 ring-primary/30"
+                      : "hover:bg-muted/50"
+                  )}
+                >
+                  <p className="text-[13px] font-semibold text-foreground">
+                    {c.nombre}
+                  </p>
+                  {c.puesto && (
+                    <p className="text-xs text-muted-foreground">{c.puesto}</p>
+                  )}
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                    {c.email && <span className="truncate">{c.email}</span>}
+                    {c.tel && <span className="font-heading tabular-nums">{c.tel}</span>}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
