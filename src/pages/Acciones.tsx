@@ -193,16 +193,44 @@ function HojaImprimible({
   contactos: (t: Doc<"tareas">) => string[];
   hoy: string;
 }) {
+  const totalPendientes = vencidas.length + proximas.length;
+
   return (
     <div id="imprimir-acciones">
-      <div style={{ marginBottom: "6mm" }}>
-        <h1 style={{ fontSize: "16pt", fontWeight: 700, margin: 0 }}>
-          Acciones pendientes
-        </h1>
-        <p style={{ fontSize: "10pt", margin: "1mm 0 0" }}>
-          Impreso el {fmtFechaLarga(hoy)}
-        </p>
-      </div>
+      <header
+        style={{
+          borderBottom: "2px solid #111",
+          paddingBottom: "3mm",
+          marginBottom: "7mm",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: "8mm",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "8.5pt",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "#666",
+              marginBottom: "1mm",
+            }}
+          >
+            Mexillum CRM
+          </div>
+          <h1 style={{ fontSize: "18pt", fontWeight: 700, margin: 0, letterSpacing: "-0.01em" }}>
+            Acciones pendientes
+          </h1>
+        </div>
+        <div style={{ textAlign: "right", fontSize: "9pt", color: "#555" }}>
+          <div>Impreso el {fmtFechaLarga(hoy)}</div>
+          <div style={{ marginTop: "0.5mm" }}>
+            {totalPendientes} {totalPendientes === 1 ? "acción" : "acciones"}
+          </div>
+        </div>
+      </header>
 
       <SeccionImprimible titulo="Vencidas" tareas={vencidas} sub={sub} contactos={contactos} />
       <SeccionImprimible titulo="Pendientes" tareas={proximas} sub={sub} contactos={contactos} />
@@ -221,48 +249,79 @@ function SeccionImprimible({
   sub: (t: Doc<"tareas">) => string;
   contactos: (t: Doc<"tareas">) => string[];
 }) {
+  // Sección vacía: no se imprime.
+  if (tareas.length === 0) return null;
+
   return (
-    <div style={{ marginBottom: "6mm" }}>
+    <div className="imprimir-seccion" style={{ marginBottom: "8mm" }}>
       <h2
         style={{
-          fontSize: "12pt",
+          fontSize: "9.5pt",
           fontWeight: 700,
-          borderBottom: "1px solid #000",
-          paddingBottom: "1mm",
-          marginBottom: "3mm",
+          textTransform: "uppercase",
+          letterSpacing: "0.14em",
+          color: "#111",
+          marginBottom: "3.5mm",
         }}
       >
-        {titulo} ({tareas.length})
+        {titulo}
+        <span style={{ color: "#999", fontWeight: 600, marginLeft: "2mm" }}>
+          {tareas.length}
+        </span>
       </h2>
-      {tareas.length === 0 ? (
-        <p style={{ fontSize: "10pt", fontStyle: "italic" }}>Nada aquí.</p>
-      ) : (
-        tareas.map((t) => (
+
+      {tareas.map((t, i) => {
+        const gente = contactos(t);
+        return (
           <div
             key={t._id}
             className="imprimir-fila"
-            style={{ marginBottom: "4mm" }}
+            style={{
+              display: "flex",
+              gap: "3mm",
+              paddingBottom: "3mm",
+              marginBottom: "3.5mm",
+              borderBottom: "0.5pt solid #ddd",
+            }}
           >
-            <div style={{ fontSize: "11pt", fontWeight: 600 }}>{t.titulo}</div>
-            <div style={{ fontSize: "9.5pt", color: "#333" }}>
-              {sub(t)} · {fmtFecha(t.fecha)}
-              {contactos(t).length > 0
-                ? ` · Contacto: ${contactos(t).join(", ")}`
-                : ""}
-            </div>
             <div
               style={{
                 fontSize: "9pt",
-                color: "#555",
-                borderBottom: "1px solid #999",
-                paddingTop: "3mm",
+                fontWeight: 700,
+                color: "#999",
+                minWidth: "6mm",
+                paddingTop: "0.3mm",
               }}
             >
-              Próxima acción:
+              {i + 1}.
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "11pt", fontWeight: 600 }}>{t.titulo}</div>
+              <div style={{ fontSize: "9pt", color: "#555", marginTop: "0.5mm" }}>
+                {sub(t)}
+                <span style={{ color: "#999" }}> · {fmtFecha(t.fecha)}</span>
+                {gente.length > 0 && (
+                  <span> · {gente.join(", ")}</span>
+                )}
+              </div>
+              <div style={{ marginTop: "4mm", display: "flex", alignItems: "flex-end", gap: "2mm" }}>
+                <span
+                  style={{
+                    fontSize: "7.5pt",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    color: "#999",
+                    paddingBottom: "0.5mm",
+                  }}
+                >
+                  Próxima acción
+                </span>
+                <span style={{ flex: 1, borderBottom: "0.5pt solid #bbb" }} />
+              </div>
             </div>
           </div>
-        ))
-      )}
+        );
+      })}
     </div>
   );
 }

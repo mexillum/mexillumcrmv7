@@ -137,6 +137,10 @@
 }
 
 @media print {
+  /* Márgenes cómodos de hoja. */
+  @page {
+    margin: 18mm 16mm;
+  }
   body {
     visibility: hidden;
   }
@@ -147,10 +151,11 @@
     left: 0;
     top: 0;
     width: 100%;
-    padding: 0 4mm;
-    color: #000;
+    color: #111;
     background: #fff;
-    font-size: 11pt;
+    font-size: 10.5pt;
+    line-height: 1.4;
+    font-family: "Inter Variable", Inter, system-ui, sans-serif;
   }
   #imprimir-acciones * {
     visibility: visible;
@@ -158,5 +163,9 @@
   /* Que una acción no se parta entre dos hojas. */
   .imprimir-fila {
     break-inside: avoid;
+  }
+  /* Que un título de sección no quede solo al pie de una hoja. */
+  .imprimir-seccion h2 {
+    break-after: avoid;
   }
 }
