@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { hoyISO } from "@/lib/formato";
+import { cn } from "@/lib/utils";
 
 const SIN_SEGMENTO = "__ninguno";
 const itemsSegmento = [
@@ -309,6 +311,138 @@ export function LeadForm({
           className="font-heading tabular-nums"
         />
       </Campo>
+    </FormDialog>
+  );
+}
+
+// ── Acción (alta rápida desde la página Acciones) ────────────
+
+export function AccionForm({
+  abierto,
+  onCerrar,
+}: {
+  abierto: boolean;
+  onCerrar: () => void;
+}) {
+  const crear = useMutation(api.tareas.create);
+  const iniciativas = useQuery(api.iniciativas.list);
+  const empresas = useQuery(api.empresas.list);
+
+  const [iniSel, setIniSel] = useState<string>("");
+  const [titulo, setTitulo] = useState("");
+  const [fecha, setFecha] = useState(hoyISO());
+  const [contactosSel, setContactosSel] = useState<Id<"contactos">[]>([]);
+
+  const nombreEmpresa = new Map(
+    (empresas ?? []).map((e) => [e._id as string, e.nombre])
+  );
+  const itemsLead = (iniciativas ?? []).map((i) => ({
+    value: i._id as string,
+    label: `${nombreEmpresa.get(i.empresaId) ?? "—"} · ${i.nombre}`,
+  }));
+
+  // Empresa del lead elegido: sus contactos son los que se pueden asignar.
+  const empresaId = (iniciativas ?? []).find((i) => i._id === iniSel)?.empresaId;
+  const contactos = useQuery(
+    api.contactos.listByEmpresa,
+    empresaId ? { empresaId } : "skip"
+  );
+
+  function elegirLead(v: string) {
+    setIniSel(v);
+    setContactosSel([]); // los contactos dependen de la empresa del lead
+  }
+  function alternarContacto(id: Id<"contactos">) {
+    setContactosSel((xs) =>
+      xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]
+    );
+  }
+
+  return (
+    <FormDialog
+      abierto={abierto}
+      onCerrar={onCerrar}
+      titulo="Nueva acción"
+      descripcion="Elige el lead y, si quieres, sus contactos."
+      onGuardar={async () => {
+        const limpio = titulo.trim();
+        if (!iniSel) throw new Error("Elige el lead de la acción.");
+        if (!limpio) throw new Error("La acción necesita una descripción.");
+        await crear({
+          iniciativaId: iniSel as Id<"iniciativas">,
+          titulo: limpio,
+          fecha,
+          contactoIds: contactosSel,
+        });
+      }}
+    >
+      <Campo label="Lead">
+        <Select items={itemsLead} value={iniSel} onValueChange={(v) => elegirLead(v ?? "")}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Elige un lead" />
+          </SelectTrigger>
+          <SelectContent>
+            {itemsLead.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Campo>
+
+      <Campo label="Qué hay que hacer">
+        <Input
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          required
+          autoFocus
+          placeholder="Llamar para dar seguimiento"
+        />
+      </Campo>
+
+      <Campo label="Fecha">
+        <Input
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          required
+          className="font-heading tabular-nums"
+        />
+      </Campo>
+
+      {iniSel && (
+        <Campo label="Contactos">
+          {contactos === undefined ? (
+            <p className="text-xs text-muted-foreground">Cargando contactos…</p>
+          ) : contactos.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Esta empresa todavía no tiene contactos.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {contactos.map((c) => {
+                const activo = contactosSel.includes(c._id);
+                return (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onClick={() => alternarContacto(c._id)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-xs transition-colors",
+                      activo
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {c.nombre}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Campo>
+      )}
     </FormDialog>
   );
 }

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
-import { AlertCircle, Clock, CheckCircle2, Printer } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, Printer, Plus } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 import { leadOculto } from "../../convex/stages";
 import { PageHead } from "@/components/Shell";
 import { FilaTarea } from "@/components/FilaTarea";
+import { AccionForm } from "@/components/formularios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function Acciones() {
   const empresas = useQuery(api.empresas.list);
   const contactos = useQuery(api.contactos.list);
   const [incluirCerrados, setIncluirCerrados] = useState(false);
+  const [creando, setCreando] = useState(false);
 
   const cargando =
     tareas === undefined ||
@@ -107,6 +109,10 @@ export function Acciones() {
               <Printer className="size-4" />
               Imprimir / PDF
             </Button>
+            <Button size="sm" className="gap-1.5" onClick={() => setCreando(true)}>
+              <Plus className="size-4" />
+              Nueva acción
+            </Button>
           </div>
         }
       />
@@ -174,6 +180,8 @@ export function Acciones() {
         contactos={nombresContacto}
         hoy={hoy}
       />
+
+      {creando && <AccionForm abierto onCerrar={() => setCreando(false)} />}
     </>
   );
 }
