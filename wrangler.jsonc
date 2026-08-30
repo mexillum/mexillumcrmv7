@@ -18,5 +18,15 @@
     // sobre Workers, Cloudflare lo lee como un bucle infinito y rechaza
     // el despliegue con el error 100324.
     "not_found_handling": "single-page-application"
-  }
+  },
+
+  // Dominio propio del CRM. Cloudflare crea y gestiona el registro DNS
+  // de crm.mexillum.com automáticamente al desplegar (borra antes el
+  // CNAME viejo que apuntaba a Railway, o el despliegue chocará).
+  "routes": [
+    {
+      "pattern": "crm.mexillum.com",
+      "custom_domain": true
+    }
+  ]
 }
