@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
-import { Search, Table2, Columns3 } from "lucide-react";
+import { Search, Table2, Columns3, Plus } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import { PageHead } from "@/components/Shell";
 import { StagePill, SalidaBadge } from "@/components/StagePill";
 import { ProximaAccion } from "@/components/ProximaAccion";
 import { LeadCard } from "@/components/LeadCard";
 import { Tablero } from "@/components/Tablero";
+import { LeadForm } from "@/components/formularios";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fmtUSD, hoyISO, VACIO } from "@/lib/formato";
@@ -28,6 +30,7 @@ export function Leads() {
 
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("abiertos");
+  const [creando, setCreando] = useState(false);
   // PRD §8: la elección Tabla / Tablero se recuerda.
   const [vista, setVista] = usePreferencia<Vista>("leads.vista", "tabla", VISTAS);
 
@@ -72,7 +75,15 @@ export function Leads() {
       <PageHead
         title="Leads"
         sub="Una empresa puede tener varios proyectos"
-        action={<CambioVista vista={vista} setVista={setVista} />}
+        action={
+          <div className="flex items-center gap-2">
+            <CambioVista vista={vista} setVista={setVista} />
+            <Button size="sm" className="gap-1.5" onClick={() => setCreando(true)}>
+              <Plus className="size-4" />
+              Nuevo lead
+            </Button>
+          </div>
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -126,6 +137,8 @@ export function Leads() {
       ) : (
         <Tabla leads={visibles} nombreEmpresa={nombreEmpresa} hoy={hoy} />
       )}
+
+      {creando && <LeadForm abierto onCerrar={() => setCreando(false)} />}
     </>
   );
 }
